@@ -1,0 +1,138 @@
+<!-- core/templates/core/scanner.html -->
+
+{% extends "core/base.html" %}
+
+{% block title %}Vulnerability Scanner{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Scanner Input Section -->
+    <div class="card border border-gray-700 rounded-xl shadow-lg p-8 bg-gray-900">
+        <h2 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <span class="text-blue-400">🛡️</span> Web Application Scanner
+        </h2>
+        <p class="text-gray-400 mb-6">Enter a target URL to initiate a scan. The process will run securely in the background.</p>
+        
+        <form id="scan-form" method="post" action="{% url 'scanner' %}">
+            {% csrf_token %}
+            <div class="flex items-center gap-3">
+                <input type="url" name="url" required 
+                       class="flex-1 bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
+                       placeholder="http://testphp.vulnweb.com">
+                <button id="scan-button" type="submit" 
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 ease-in-out">
+                    🚀 Start Scan
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scans History Section -->
+    <div class="card border border-gray-700 rounded-xl shadow-lg p-6 bg-gray-900">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-2xl font-bold text-white flex items-center gap-3">
+                <span class="text-indigo-400">📜</span> Recent Scans
+            </h3>
+            {% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
+            <span class="text-sm text-yellow-400 animate-pulse">Auto-refreshing...</span>
+            {% endif %}
+        </div>
+        
+        <div class="overflow-hidden border border-gray-700 rounded-lg">
+            <table class="w-full text-sm text-left text-gray-300">
+                <thead class="bg-gray-800 text-xs text-gray-400 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3">Target</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3 text-center">Vulnerabilities</th>
+                        <th class="px-4 py-3">Scan Date</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800">
+                    {% for scan in scans_history %}
+                    <tr id="scan-row-{{ scan.id }}" class="hover:bg-gray-800/50 transition duration-150">
+                        <!-- Target as clickable link -->
+                        <td class="px-4 py-3 font-mono">
+                            <a href="{% url 'scan_detail' scan.id %}" 
+                               class="text-blue-400 hover:underline hover:text-blue-300 transition">
+                                {{ scan.target_url|truncatechars:40 }}
+                            </a>
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td class="px-4 py-3 status-cell">
+                            <span class="font-semibold px-2.5 py-1 rounded-full text-xs
+                                {% if scan.status == 'COMPLETED' %} bg-teal-500/20 text-teal-300
+                                {% elif scan.status == 'RUNNING' or scan.status == 'PENDING' %} bg-amber-500/20 text-amber-300 animate-pulse
+                                {% elif scan.status == 'FAILED' %} bg-rose-500/20 text-rose-300
+                                {% endif %}">
+                                {{ scan.get_status_display }}
+                            </span>
+                        </td>
+
+                        <!-- Vulnerabilities -->
+                        <td class="px-4 py-3 text-center vulnerabilities-cell">
+                            {% if scan.status == 'COMPLETED' %}
+                                {% if scan.vulnerabilities.count > 0 %}
+                                    <span title="Click target to see full report"
+                                          class="font-bold text-red-400 text-base cursor-help">
+                                          {{ scan.vulnerabilities.count }}
+                                    </span>
+                                {% else %}
+                                    <span class="font-bold text-green-400 text-base">0</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-gray-500">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Scan Date -->
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-400">
+                            {{ scan.created_at|date:"Y-m-d H:i" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-6 text-gray-500 italic">No scans have been run yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for auto-refresh -->
+{% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
+<script>
+    const scanId = {{ scans_history.0.id }};
+    const statusUrl = `/api/scans/${scanId}/status/`;
+
+    const checkStatus = async () => {
+        try {
+            const response = await fetch(statusUrl);
+            if (!response.ok) {
+                console.error('Failed to fetch status. Stopping poll.');
+                clearInterval(pollingInterval);
+                return;
+            }
+            const data = await response.json();
+            if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                clearInterval(pollingInterval);
+                window.location.reload();
+            } else {
+                const statusCell = document.querySelector(`#scan-row-${scanId} .status-cell span`);
+                if (statusCell) {
+                    statusCell.textContent = data.get_status_display;
+                }
+            }
+        } catch (error) {
+            console.error('Error during status check:', error);
+            clearInterval(pollingInterval);
+        }
+    };
+
+    const pollingInterval = setInterval(checkStatus, 10000);
+</script>
+{% endif %}
+{% endblock %}

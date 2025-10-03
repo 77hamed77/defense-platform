@@ -1,0 +1,111 @@
+<!-- core/templates/core/alert_detail.html -->
+
+{% extends "core/base.html" %}
+{% load core_tags %}
+
+{% block title %}Alert #{{ alert.id }}{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Details Column -->
+    <div class="lg:col-span-2">
+        <div class="card border rounded-lg p-6">
+            <!-- Header -->
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-2xl font-bold">Alert Details</h2>
+                    <p class="text-gray-400">ID: {{ alert.id }}</p>
+                </div>
+                <!-- Status Form -->
+                <form method="POST" action="{% url 'alert-detail' alert.pk %}" class="flex items-center space-x-2">
+                    {% csrf_token %}
+                    <label for="status" class="text-sm font-medium text-gray-300">Status:</label>
+                    <select id="status" name="status" class="bg-gray-700 border rounded-md px-2 py-1 text-white">
+                        {% for value, display in status_choices %}
+                        <option value="{{ value }}" {% if alert.status == value %}selected{% endif %}>{{ display }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-md">Update</button>
+                </form>
+            </div>
+            <!-- Details Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 mt-6 border-t border-gray-700 pt-6">
+                <div>
+            <h3 class="font-semibold text-gray-400">Description</h3>
+            <p>{{ alert.description }}</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-gray-400">Current Status</h3>
+            <p class="font-medium">{{ alert.get_status_display }}</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-gray-400">Severity</h3>
+            <span class="px-2 py-1 rounded-full text-xs font-bold severity-{{ alert.severity|lower }}">
+                {{ alert.get_severity_display }}
+            </span>
+        </div>
+        <div>
+            <h3 class="font-semibold text-gray-400">Timestamp</h3>
+            <p>{{ alert.timestamp|date:"Y-m-d H:i:s" }}</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-gray-400">Source IP</h3>
+            <p class="font-mono">{{ alert.source_ip|default:"N/A" }}</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-gray-400">Destination IP</h3>
+            <p class="font-mono">{{ alert.destination_ip|default:"N/A" }}</p>
+        </div>
+        <div>
+            <h3 class="font-semibold text-gray-400">Source Tool</h3>
+            <p>{{ alert.source_tool }}</p>
+        </div>
+            </div>
+            <!-- Raw Log Data -->
+            <div class="mt-6 border-t border-gray-700 pt-6">
+                <h3 class="font-semibold text-gray-400 mb-2">Raw Log Data</h3>
+                {{ alert.raw_log|pretty_json }}
+            </div>
+        </div>
+    </div>
+
+    <!-- Playbooks & Actions Column -->
+    <div class="lg:col-span-1 space-y-6">
+        <!-- Playbooks Section -->
+        <div class="card border rounded-lg p-4">
+            <h3 class="text-lg font-bold mb-4">Available Playbooks</h3>
+            <div class="space-y-3">
+                {% for playbook in playbooks %}
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-semibold">{{ playbook.name }}</p>
+                        <p class="text-xs text-gray-400">{{ playbook.description }}</p>
+                    </div>
+                    <form method="POST" action="{% url 'run-playbook' alert.pk playbook.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white text-sm font-bold py-1 px-3 rounded-md">Run</button>
+                    </form>
+                </div>
+                {% empty %}
+                <p class="text-sm text-gray-400">No active playbooks available.</p>
+                {% endfor %}
+            </div>
+        </div>
+        <!-- Action Log Section -->
+        <div class="card border rounded-lg p-4">
+            <h3 class="text-lg font-bold mb-4">Action Log</h3>
+            <ul class="space-y-3">
+                {% for action in alert.actions.all %}
+                <li class="text-sm">
+                    <p class="font-semibold">Playbook '{{ action.playbook_run.name }}' executed</p>
+                    <p class="text-xs text-gray-400">{{ action.timestamp|date:"Y-m-d H:i:s" }}</p>
+                    <p class="text-xs text-gray-300 mt-1">Details: {{ action.details }}</p>
+                </li>
+                {% empty %}
+                <p class="text-sm text-gray-400">No actions have been taken on this alert.</p>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

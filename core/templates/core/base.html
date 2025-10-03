@@ -1,0 +1,69 @@
+<!-- core/templates/core/base.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Defense Platform{% endblock %}</title>
+    
+    <!-- Frameworks and Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        /* Simple dark mode theme for demonstration */
+        body { background-color: #111827; color: #d1d5db; }
+        .card { background-color: #1f2937; border-color: #374151; }
+        .table-header { background-color: #374151; }
+        .table-row-dark { background-color: #1f2937; }
+        .table-row-light { background-color: #2b3a4f; }
+        
+        /* Severity Colors */
+        .severity-low { background-color: rgb(49 163 89 / 72%); color: white; }
+        .severity-medium { background-color: #f59e0b; color: white; }
+        .severity-high { background-color: rgb(111 38 38); color: white; }
+        .severity-critical { background-color: #8b5cf6; color: white; }
+    </style>
+</head>
+<body class="font-sans antialiased">
+    <nav class="bg-gray-900 border-b border-gray-700 p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-bold text-white">
+                <a href="{% url 'dashboard' %}" class="hover:text-blue-400">Smart Cybersecurity Division</a>
+            </h1>
+            
+            <!-- Navigation Links -->
+            <div class="flex items-center space-x-6">
+                <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white transition-colors duration-200">Dashboard</a>
+                <a href="{% url 'ioc-list' %}" class="text-gray-300 hover:text-white transition-colors duration-200">IOCs</a>
+                <a href="{% url 'hunting' %}" class="text-gray-300 hover:text-white transition-colors duration-200">Hunting</a>
+                <a href="{% url 'scanner' %}" class="text-gray-300 hover:text-white transition-colors duration-200">Scanner</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4">
+        
+        <!-- System Messages -->
+        {% if messages %}
+        <div class="mb-4 space-y-2">
+            {% for message in messages %}
+            <div class="p-3 rounded-md text-white
+                {% if message.tags == 'success' %} bg-green-600 
+                {% elif message.tags == 'warning' %} bg-yellow-600 
+                {% elif message.tags == 'error' %} bg-red-600 
+                {% else %} bg-blue-600 {% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}
+        <!-- Page specific content will be injected here -->
+        {% endblock %}
+    </main>
+</body>
+</html>

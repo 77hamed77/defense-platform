@@ -1,0 +1,111 @@
+<!-- core/templates/core/dashboard.html -->
+
+{% extends "core/base.html" %}
+
+{% block title %}Dashboard - Defense Platform{% endblock %}
+
+{% block content %}
+<!-- صف الإحصائيات العلوية -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="card border rounded-lg p-4 text-center">
+        <h2 class="text-lg font-semibold text-gray-400">Total Alerts</h2>
+        <p class="text-3xl font-bold mt-2">{{ total_alerts }}</p>
+    </div>
+    <div class="card border rounded-lg p-4 text-center">
+        <h2 class="text-lg font-semibold text-gray-400">Managed Assets</h2>
+        <p class="text-3xl font-bold mt-2">{{ total_assets }}</p>
+    </div>
+    <div class="card border rounded-lg p-4 text-center">
+        <h2 class="text-lg font-semibold text-gray-400">Tracked IOCs</h2>
+        <p class="text-3xl font-bold mt-2">{{ total_iocs }}</p>
+    </div>
+</div>
+
+<!-- صف المحتوى الرئيسي (الرسم البياني والجدول) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- عمود الرسم البياني -->
+    <div class="card lg:col-span-1 border rounded-lg p-4">
+        <h2 class="text-xl font-bold mb-4 text-center">Alerts by Severity</h2>
+        <canvas id="severityChart"></canvas>
+    </div>
+
+    <!-- عمود جدول التنبيهات -->
+    <div class="card lg:col-span-2 border rounded-lg p-4">
+        <h2 class="text-xl font-bold mb-4">Latest Alerts</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-left">
+                <thead class="table-header">
+                    <tr>
+                        <th class="p-2">Timestamp</th>
+                        <th class="p-2">Severity</th>
+                        <th class="p-2">Description</th>
+                        <th class="p-2">Source IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in latest_alerts %}
+                    <tr class="border-b border-gray-700 {% if forloop.counter|divisibleby:2 %}table-row-dark{% else %}table-row-light{% endif %}">
+                        <td class="p-2 whitespace-nowrap">{{ alert.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td class="p-2">
+                            <span class="px-2 py-1 rounded-full text-xs font-bold severity-{{ alert.severity|lower }}">
+                                {{ alert.get_severity_display }}
+                            </span>
+                        </td>
+                        <td class="p-2">
+                            <a href="{% url 'alert-detail' alert.pk %}" class="text-blue-400 hover:underline">
+                                {{ alert.description|truncatechars:50 }}
+                            </a>
+                        </td>
+                        <td class="p-2 font-mono">{{ alert.source_ip|default:"N/A" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center p-4">No alerts found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- كود JavaScript الخاص بالرسم البياني -->
+{{ severity_labels|json_script:"severity-labels" }}
+{{ severity_data|json_script:"severity-data" }}
+<script>
+    const severityLabels = JSON.parse(document.getElementById('severity-labels').textContent);
+    const severityData = JSON.parse(document.getElementById('severity-data').textContent);
+    
+    const ctx = document.getElementById('severityChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: severityLabels,
+            datasets: [{
+                label: 'Alerts by Severity',
+                data: severityData,
+                backgroundColor: [
+                    '#22c55e', // Low - Green
+                    '#f59e0b', // Medium - Amber
+                    '#ef4444', // High - Red
+                    '#8b5cf6'  // Critical - Violet
+                ],
+                borderColor: '#1f2937', // لون الخلفية للحدود
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#d1d5db' // لون النص
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
