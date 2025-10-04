@@ -2,26 +2,38 @@
 
 {% extends "core/base.html" %}
 
-{% block title %}Vulnerability Scanner{% endblock %}
+{% block title %}Scanner Orchestrator{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
     <!-- Scanner Input Section -->
     <div class="card border border-gray-700 rounded-xl shadow-lg p-8 bg-gray-900">
         <h2 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <span class="text-blue-400">🛡️</span> Web Application Scanner
+            <span class="text-blue-400">🚀</span> Scanner Orchestrator
         </h2>
-        <p class="text-gray-400 mb-6">Enter a target URL to initiate a scan. The process will run securely in the background.</p>
+        <p class="text-gray-400 mb-6">Select a tool and enter a target to initiate a scan. The process will run securely in the background.</p>
         
         <form id="scan-form" method="post" action="{% url 'scanner' %}">
             {% csrf_token %}
-            <div class="flex items-center gap-3">
-                <input type="url" name="url" required 
-                       class="flex-1 bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
-                       placeholder="http://testphp.vulnweb.com">
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <!-- Tool Selector -->
+                <select name="tool" required 
+                        class="md:col-span-2 bg-gray-800 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    <option value="" disabled selected>Select a Tool</option>
+                    {% for tool in available_tools %}
+                        <option value="{{ tool.id }}">{{ tool.name }}</option>
+                    {% endfor %}
+                </select>
+
+                <!-- Target Input -->
+                <input type="text" name="url" required 
+                       class="md:col-span-2 flex-1 bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
+                       placeholder="example.com or http://example.com">
+                
+                <!-- Submit Button -->
                 <button id="scan-button" type="submit" 
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 ease-in-out">
-                    🚀 Start Scan
+                        class="md:col-span-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 ease-in-out">
+                    Start Scan
                 </button>
             </div>
         </form>
@@ -42,24 +54,26 @@
             <table class="w-full text-sm text-left text-gray-300">
                 <thead class="bg-gray-800 text-xs text-gray-400 uppercase tracking-wider">
                     <tr>
+                        <th class="px-4 py-3">Tool</th>
                         <th class="px-4 py-3">Target</th>
                         <th class="px-4 py-3">Status</th>
-                        <th class="px-4 py-3 text-center">Vulnerabilities</th>
+                        <th class="px-4 py-3 text-center">Findings</th>
                         <th class="px-4 py-3">Scan Date</th>
+                        <th class="px-4 py-3 text-center">Actions / Duration</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-800">
                     {% for scan in scans_history %}
-                    <tr id="scan-row-{{ scan.id }}" class="hover:bg-gray-800/50 transition duration-150">
-                        <!-- Target as clickable link -->
+                    <tr id="scan-row-{{ scan.id }}" class="hover:bg-gray-800/50 transition duration-150"
+                        data-start-time="{{ scan.created_at.isoformat }}"
+                        data-status="{{ scan.status }}">
+                        
+                        <td class="px-4 py-3 font-semibold text-gray-200">{{ scan.tool.name|default:"N/A" }}</td>
                         <td class="px-4 py-3 font-mono">
-                            <a href="{% url 'scan_detail' scan.id %}" 
-                               class="text-blue-400 hover:underline hover:text-blue-300 transition">
+                            <a href="{% url 'scan_detail' scan.id %}" class="text-blue-400 hover:underline">
                                 {{ scan.target_url|truncatechars:40 }}
                             </a>
                         </td>
-
-                        <!-- Status Badge -->
                         <td class="px-4 py-3 status-cell">
                             <span class="font-semibold px-2.5 py-1 rounded-full text-xs
                                 {% if scan.status == 'COMPLETED' %} bg-teal-500/20 text-teal-300
@@ -69,15 +83,10 @@
                                 {{ scan.get_status_display }}
                             </span>
                         </td>
-
-                        <!-- Vulnerabilities -->
                         <td class="px-4 py-3 text-center vulnerabilities-cell">
                             {% if scan.status == 'COMPLETED' %}
                                 {% if scan.vulnerabilities.count > 0 %}
-                                    <span title="Click target to see full report"
-                                          class="font-bold text-red-400 text-base cursor-help">
-                                          {{ scan.vulnerabilities.count }}
-                                    </span>
+                                    <span class="font-bold text-red-400 text-base">{{ scan.vulnerabilities.count }}</span>
                                 {% else %}
                                     <span class="font-bold text-green-400 text-base">0</span>
                                 {% endif %}
@@ -85,15 +94,27 @@
                                 <span class="text-gray-500">—</span>
                             {% endif %}
                         </td>
-
-                        <!-- Scan Date -->
-                        <td class="px-4 py-3 whitespace-nowrap text-gray-400">
-                            {{ scan.created_at|date:"Y-m-d H:i" }}
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-400">{{ scan.created_at|date:"Y-m-d H:i" }}</td>
+                        
+                        <!-- Actions / Duration Column -->
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center justify-center gap-4">
+                                <span class="timer font-mono text-sm text-gray-400 w-20 text-center"></span>
+                                
+                                {% if scan.status == 'RUNNING' or scan.status == 'PENDING' %}
+                                <form method="post" action="{% url 'stop_scan' scan.id %}" onsubmit="return confirm('Are you sure you want to terminate this scan?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded-md transition transform hover:scale-110">
+                                        Stop
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-6 text-gray-500 italic">No scans have been run yet.</td>
+                        <td colspan="6" class="text-center py-6 text-gray-500 italic">No scans have been run yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -102,37 +123,66 @@
     </div>
 </div>
 
-<!-- JavaScript for auto-refresh -->
-{% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
+<!-- JavaScript for Timers and Auto-Refresh -->
 <script>
-    const scanId = {{ scans_history.0.id }};
-    const statusUrl = `/api/scans/${scanId}/status/`;
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Timer Logic ---
+    const timerRows = document.querySelectorAll('tr[data-start-time]');
+    
+    function formatDuration(seconds) {
+        if (seconds < 0) seconds = 0;
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
 
-    const checkStatus = async () => {
-        try {
-            const response = await fetch(statusUrl);
-            if (!response.ok) {
-                console.error('Failed to fetch status. Stopping poll.');
-                clearInterval(pollingInterval);
-                return;
-            }
-            const data = await response.json();
-            if (data.status === 'COMPLETED' || data.status === 'FAILED') {
-                clearInterval(pollingInterval);
-                window.location.reload();
-            } else {
-                const statusCell = document.querySelector(`#scan-row-${scanId} .status-cell span`);
-                if (statusCell) {
-                    statusCell.textContent = data.get_status_display;
-                }
-            }
-        } catch (error) {
-            console.error('Error during status check:', error);
-            clearInterval(pollingInterval);
+    timerRows.forEach(row => {
+        const timerEl = row.querySelector('.timer');
+        const startTimeStr = row.dataset.startTime;
+        const status = row.dataset.status;
+
+        if (!startTimeStr || (status !== 'RUNNING' && status !== 'PENDING')) {
+            timerEl.textContent = '—';
+            return;
         }
-    };
 
-    const pollingInterval = setInterval(checkStatus, 10000);
+        const startTime = new Date(startTimeStr);
+        
+        const updateTimer = () => {
+            const now = new Date();
+            const elapsedSeconds = Math.round((now - startTime) / 1000);
+            timerEl.textContent = formatDuration(elapsedSeconds);
+        };
+
+        const intervalId = setInterval(updateTimer, 1000);
+        row.dataset.intervalId = intervalId; // Store interval ID for later cleanup
+        updateTimer(); // Run once immediately
+    });
+
+    // --- Auto-Refresh Logic (remains the same) ---
+    {% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
+        const scanId = {{ scans_history.0.id }};
+        const statusUrl = `/api/scans/${scanId}/status/`;
+
+        const checkStatus = async () => {
+            try {
+                const response = await fetch(statusUrl);
+                if (!response.ok) {
+                    clearInterval(pollingInterval); return;
+                }
+                const data = await response.json();
+                if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                    clearInterval(pollingInterval);
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('Error during status poll:', error);
+                clearInterval(pollingInterval);
+            }
+        };
+        const pollingInterval = setInterval(checkStatus, 10000);
+    {% endif %}
+});
 </script>
-{% endif %}
 {% endblock %}

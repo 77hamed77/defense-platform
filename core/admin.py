@@ -1,7 +1,8 @@
 # core/admin.py
 
 from django.contrib import admin
-from .models import Asset, Alert, IndicatorOfCompromise, Playbook, ActionLog
+from .models import Asset, Alert, IndicatorOfCompromise, Playbook, ActionLog, Tool, Scan, Vulnerability
+
 
 # تسجيل النماذج هنا لتظهر في لوحة التحكم
 admin.site.register(Asset)
@@ -9,3 +10,6 @@ admin.site.register(Alert)
 admin.site.register(IndicatorOfCompromise)
 admin.site.register(Playbook) 
 admin.site.register(ActionLog)
+admin.site.register(Tool)
+admin.site.register(Scan)
+admin.site.register(Vulnerability)

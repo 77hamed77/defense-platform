@@ -19,6 +19,9 @@ urlpatterns = [
     path('api/v1/user/login', views.honeypot_api, name='honeypot-api'),
     path('scanner/', views.scanner_view, name='scanner'),
     path('api/scans/<int:pk>/status/', views.ScanStatusAPIView.as_view(), name='scan-status-api'),
-    path("scans/<int:scan_id>/", views.scan_detail_view, name="scan_detail"),
     path("api/scans/<int:scan_id>/status/", views.scan_status_api, name="scan_status_api"),
+    
+    path("scans/<int:scan_id>/", views.scan_detail_view, name="scan_detail"),
+    path('scans/<int:scan_id>/stop/', views.stop_scan_view, name='stop_scan'),
+    
 ]

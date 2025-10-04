@@ -1,5 +1,5 @@
 # core/views.py
-
+from urllib.parse import urlparse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.db.models import Count
@@ -17,12 +17,15 @@ from django.utils import timezone
 from .models import Scan, Vulnerability
 from django.contrib import messages
 import csv 
-from .tasks import run_nikto_scan # <-- استيراد المهمة الجديدة
+from .tasks import execute_scan_task # <-- استيراد المهمة الجديدة
 from .serializers import AlertSerializer, ScanStatusSerializer # <-- أضف ScanStatusSerializer
 from rest_framework.permissions import IsAuthenticated # <-- سنقوم بتأمينه للمستخدمين المسجلين فقط
 from .tasks import enrich_ip_with_virustotal
 import os
 from django.http import JsonResponse, Http404
+from .models import Tool
+from .tasks import execute_scan_task
+from defense_platform.celery import app as celery_app
 
 
 def dashboard(request):
@@ -239,195 +242,47 @@ def honeypot_api(request):
     # 4. الرد على المهاجم برسالة غامضة وناجحة ظاهريًا لخداعه
     return JsonResponse({'status': 'success', 'message': 'Login successful'}, status=200)
 
-
-NIKTO_BIN = "/usr/local/bin/nikto"  # استخدم المسار الكاملNikto
-
 def scanner_view(request):
-    """Handle vulnerability scans with Nikto and display scan history."""
-
-    # --- استرجاع آخر 5 عمليات فحص ---
-    scans_history = Scan.objects.order_by('-created_at')[:5]
-    context = {'scans_history': scans_history}
-
     if request.method == 'POST':
-        url_to_scan = request.POST.get('url', '').strip()
+        url_input = request.POST.get('url', '').strip()
+        tool_id = request.POST.get('tool')
 
-        if not url_to_scan:
-            messages.error(request, "⚠️ Please provide a valid URL to scan.")
+        if not url_input or not tool_id:
+            messages.error(request, "Please provide a target and select a tool.")
+            return redirect('scanner')
+        
+        try:
+            tool = Tool.objects.get(id=tool_id)
+        except Tool.DoesNotExist:
+            messages.error(request, "Selected tool not found.")
             return redirect('scanner')
 
-        # إنشاء سجل جديد للفحص
-        scan = Scan.objects.create(target_url=url_to_scan, status='RUNNING')
+        # --- منطق ذكي لتحضير الهدف ---
+        target = url_input
+        if tool.name == 'Nmap':
+            # Nmap يريد اسم نطاق فقط، لذلك نزيل البروتوكول والمسارات
+            parsed_uri = urlparse(url_input)
+            target = parsed_uri.netloc or parsed_uri.path
+            # إزالة البورت إذا كان موجودًا
+            if ':' in target:
+                target = target.split(':')[0]
+        # --------------------------------
 
-        # مسار تقرير مؤقت
-        report_path = f"/tmp/nikto_report_{scan.id}.json"
-
-        # --- الأمر المخصص لـ Nikto ---
-        command = [
-            NIKTO_BIN,
-            "-host", url_to_scan,
-            "-output", report_path,
-            "-Format", "json",
-            "-nointeractive"
-        ]
-
-        try:
-            # تشغيل Nikto
-            result = subprocess.run(
-                command,
-                check=True,
-                timeout=600,
-                capture_output=True,
-                text=True
-            )
-
-            # --- قراءة وتحليل ملف JSON ---
-            if os.path.exists(report_path):
-                with open(report_path, 'r') as f:
-                    report_data = json.load(f)
-
-                # ✅ إصلاح مشكلة list/dict
-                if isinstance(report_data, list):
-                    reports = report_data
-                else:
-                    reports = [report_data]
-
-                total_vulns = 0
-                for host_report in reports:
-                    vulns = host_report.get("vulnerabilities", [])
-                    for vuln in vulns:
-                        Vulnerability.objects.create(
-                            scan=scan,
-                            description=vuln.get("msg", vuln.get("description", "No description provided.")),
-                            severity=vuln.get("id", "N/A"),
-                            details=vuln
-                        )
-                        total_vulns += 1
-
-                scan.status = 'COMPLETED'
-                messages.success(
-                    request,
-                    f"✅ Scan for {url_to_scan} completed successfully with {total_vulns} vulnerabilities."
-                )
-            else:
-                scan.status = 'FAILED'
-                messages.error(request, "⚠️ Nikto did not generate a report file.")
-
-        except subprocess.TimeoutExpired:
-            scan.status = 'FAILED'
-            messages.error(request, "⏱️ The scan took too long and was terminated.")
-
-        except subprocess.CalledProcessError as e:
-            scan.status = 'FAILED'
-            error_msg = e.stderr or "Unknown error from Nikto process."
-            messages.error(request, f"❌ Nikto process failed. Error: {error_msg}")
-
-        except json.JSONDecodeError:
-            scan.status = 'FAILED'
-            messages.error(request, "⚠️ Failed to parse Nikto's JSON report. Output may be invalid.")
-
-        except Exception as e:
-            scan.status = 'FAILED'
-            messages.error(request, f"❌ Unexpected error: {str(e)}")
-
-        finally:
-            # حفظ حالة الفحص
-            scan.completed_at = timezone.now()
-            scan.save()
-
-            # تنظيف الملف المؤقت
-            if os.path.exists(report_path):
-                os.remove(report_path)
-
+        scan = Scan.objects.create(target_url=target, tool=tool, status='PENDING')
+        async_result = execute_scan_task.delay(scan.id)
+        scan.task_id = async_result.id
+        scan.save()
+        
+        messages.success(request, f"{tool.name} scan for {target} has been scheduled.")
         return redirect('scanner')
 
-    return render(request, 'core/scanner.html', context)
-    """Handle vulnerability scans with Nikto and display scan history."""
-
-    # --- استرجاع آخر 5 عمليات فحص ---
     scans_history = Scan.objects.order_by('-created_at')[:5]
-    context = {'scans_history': scans_history}      
-
-    if request.method == 'POST':
-        url_to_scan = request.POST.get('url', '').strip()
-
-        if not url_to_scan:
-            messages.error(request, "⚠️ Please provide a valid URL to scan.")
-            return redirect('scanner')
-
-        # إنشاء سجل جديد للفحص
-        scan = Scan.objects.create(target_url=url_to_scan, status='RUNNING')
-
-        # مسار تقرير مؤقت
-        report_path = f"/tmp/nikto_report_{scan.id}.json"
-
-        # --- الأمر المخصص لـ Nikto ---
-        command = [
-            'nikto',
-            '-h', url_to_scan,
-            '-o', report_path,
-            '-Format', 'json'
-        ]
-
-        try:
-            # تشغيل Nikto مع مراقبة الأخطاء والوقت
-            result = subprocess.run(
-                command,
-                check=True,
-                timeout=600,
-                capture_output=True,
-                text=True
-            )
-
-            # --- قراءة وتحليل ملف JSON ---
-            if os.path.exists(report_path):
-                with open(report_path, 'r') as f:
-                    report_data = json.load(f)
-
-                for vuln in report_data.get('vulnerabilities', []):
-                    Vulnerability.objects.create(
-                        scan=scan,
-                        description=vuln.get('description', 'No description provided.'),
-                        severity=vuln.get('id', 'N/A'),
-                        details=vuln
-                    )
-
-                scan.status = 'COMPLETED'
-                messages.success(request, f"✅ Scan for {url_to_scan} completed successfully.")
-            else:
-                scan.status = 'FAILED'
-                messages.error(request, "⚠️ Nikto did not generate a report file.")
-
-        except subprocess.TimeoutExpired:
-            scan.status = 'FAILED'
-            messages.error(request, "⏱️ The scan took too long and was terminated.")
-        
-        except subprocess.CalledProcessError as e:
-            scan.status = 'FAILED'
-            error_msg = e.stderr or "Unknown error from Nikto process."
-            messages.error(request, f"❌ Nikto process failed. Error: {error_msg}")
-        
-        except json.JSONDecodeError:
-            scan.status = 'FAILED'
-            messages.error(request, "⚠️ Failed to parse Nikto's JSON report. Output may be invalid.")
-        
-        except Exception as e:
-            scan.status = 'FAILED'
-            messages.error(request, f"❌ Unexpected error: {str(e)}")
-
-        finally:
-            # حفظ حالة الفحص
-            scan.completed_at = timezone.now()
-            scan.save()
-
-            # تنظيف الملفات المؤقتة
-            if os.path.exists(report_path):
-                os.remove(report_path)
-
-        return redirect('scanner')
-
+    available_tools = Tool.objects.filter(is_active=True)
+    context = {
+        'scans_history': scans_history,
+        'available_tools': available_tools,
+    }
     return render(request, 'core/scanner.html', context)
-
 
 class ScanStatusAPIView(generics.RetrieveAPIView):
     queryset = Scan.objects.all()
@@ -460,3 +315,21 @@ def scan_status_api(request, scan_id):
         "completed_at": scan.completed_at.strftime("%Y-%m-%d %H:%M:%S") if scan.completed_at else None,
         "vulnerabilities_count": scan.vulnerabilities.count(),
     })
+
+def stop_scan_view(request, scan_id):
+    if request.method == 'POST':
+        scan = get_object_or_404(Scan, id=scan_id)
+        if scan.task_id and (scan.status == 'RUNNING' or scan.status == 'PENDING'):
+            # إرسال إشارة لإلغاء المهمة وقتلها
+            celery_app.control.revoke(scan.task_id, terminate=True, signal='SIGKILL')
+            
+            # تحديث الحالة يدويًا
+            scan.status = 'FAILED'
+            scan.completed_at = timezone.now()
+            scan.save()
+            
+            messages.warning(request, f"Scan for {scan.target_url} has been terminated.")
+        else:
+            messages.error(request, "This scan is already completed or cannot be stopped.")
+    
+    return redirect('scanner')
