@@ -1,5 +1,26 @@
+# Django Core
 django
 djangorestframework
 django-filter
 djangorestframework-api-key
 
+# Celery and Redis (Compatible versions)
+celery
+billiard
+kombu
+vine
+importlib-metadata
+redis
+
+# External Tools Connectors
+requests
+requests_ntlm
+defusedxml
+beautifulsoup4
+Jinja2
+colorama
+pyparsing
+pymetasploit3
+
+# Database (for production)
+psycopg2-binary

@@ -97,6 +97,7 @@
                     </div>
 
                     <!-- Actions -->
+
                     <div class="flex flex-col items-end gap-2">
                         <button class="copy-btn inline-flex items-center gap-2 text-xs bg-gray-800 text-gray-200 px-3 py-1 rounded hover:bg-gray-700"
                                 data-details="{{ vuln.details|escapejs }}">
@@ -106,6 +107,14 @@
                         <button class="toggle-btn inline-flex items-center gap-2 text-xs bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">
                             ▾ Details
                         </button>
+                        {% if vuln.metasploit_module %}
+                            <form method="post" action="{% url 'test_exploit' vuln.id %}" onsubmit="return confirm('WARNING: This will attempt to actively exploit the target. Proceed only with explicit authorization.');">
+                                {% csrf_token %}
+                                <button type="submit" class="inline-flex items-center gap-2 text-xs bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">
+                                    🔥 Test Exploit
+                                </button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
 

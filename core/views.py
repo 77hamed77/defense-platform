@@ -26,6 +26,7 @@ from django.http import JsonResponse, Http404
 from .models import Tool
 from .tasks import execute_scan_task
 from defense_platform.celery import app as celery_app
+from .tasks import execute_scan_task, enrich_ip_with_virustotal, run_metasploit_exploit # <-- أضف المهمة الجديدة
 
 
 def dashboard(request):
@@ -333,3 +334,16 @@ def stop_scan_view(request, scan_id):
             messages.error(request, "This scan is already completed or cannot be stopped.")
     
     return redirect('scanner')
+
+def exploit_view(request, vuln_id):
+    if request.method == 'POST':
+        vuln = get_object_or_404(Vulnerability, id=vuln_id)
+        if vuln.metasploit_module and vuln.scan.target_url:
+            # استدعاء مهمة Celery لتنفيذ الاستغلال في الخلفية
+            run_metasploit_exploit.delay(vuln.id)
+            messages.success(request, f"Metasploit exploit '{vuln.metasploit_module}' has been scheduled against {vuln.scan.target_url}.")
+        else:
+            messages.error(request, "This vulnerability has no associated Metasploit module or target.")
+    
+    # أعد التوجيه إلى صفحة تفاصيل الفحص
+    return redirect('scan_detail', scan_id=vuln.scan.id)

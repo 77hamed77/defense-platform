@@ -84,4 +84,7 @@ class Vulnerability(models.Model):
     severity = models.CharField(max_length=50)
     cve_id = models.CharField(max_length=50, blank=True, null=True)
     details = models.JSONField()
+    
+    metasploit_module = models.CharField(max_length=200, blank=True, null=True, help_text="The corresponding Metasploit module name")
+    
     def __str__(self): return self.description[:80]

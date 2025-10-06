@@ -24,4 +24,7 @@ urlpatterns = [
     path("scans/<int:scan_id>/", views.scan_detail_view, name="scan_detail"),
     path('scans/<int:scan_id>/stop/', views.stop_scan_view, name='stop_scan'),
     
+    path('vulnerability/<int:vuln_id>/exploit/', views.exploit_view, name='test_exploit'),
+
+    
 ]
