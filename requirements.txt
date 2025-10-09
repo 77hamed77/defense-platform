@@ -10,7 +10,7 @@ billiard
 kombu
 vine
 importlib-metadata
-redis
+redis<5.0.0
 
 # External Tools Connectors
 requests

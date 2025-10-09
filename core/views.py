@@ -277,7 +277,7 @@ def scanner_view(request):
         messages.success(request, f"{tool.name} scan for {target} has been scheduled.")
         return redirect('scanner')
 
-    scans_history = Scan.objects.order_by('-created_at')[:5]
+    scans_history = Scan.objects.order_by('-created_at')[:15]
     available_tools = Tool.objects.filter(is_active=True)
     context = {
         'scans_history': scans_history,
@@ -338,7 +338,7 @@ def stop_scan_view(request, scan_id):
 def exploit_view(request, vuln_id):
     if request.method == 'POST':
         vuln = get_object_or_404(Vulnerability, id=vuln_id)
-        if vuln.metasploit_module and vuln.scan.target_url:
+        if vuln.scan.target_url:
             # استدعاء مهمة Celery لتنفيذ الاستغلال في الخلفية
             run_metasploit_exploit.delay(vuln.id)
             messages.success(request, f"Metasploit exploit '{vuln.metasploit_module}' has been scheduled against {vuln.scan.target_url}.")
