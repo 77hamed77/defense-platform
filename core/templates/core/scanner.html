@@ -158,6 +158,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const xxeTextarea = document.getElementById('xxe-request');
     const scanButton = document.getElementById('scan-button');
     const mainFormGrid = document.getElementById('main-form-grid');
+    // --- إضافة جديدة: تعبئة الهدف تلقائيًا من الـ URL ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetFromUrl = urlParams.get('url');
+    if (targetFromUrl) {
+        const targetInput = document.getElementById('target-url');
+        if (targetInput) {
+            targetInput.value = targetFromUrl;
+        }
 
     toolSelector.addEventListener('change', function() {
         const selectedOption = this.options[this.selectedIndex];
@@ -245,6 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         const pollingInterval = setInterval(checkStatus, 5000); // Check every 5 seconds
     {% endif %}
-});
+}});
 </script>
 {% endblock %}

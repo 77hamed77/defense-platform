@@ -1,4 +1,6 @@
 # core/tasks.py
+import re # <-- مكتبة جديدة لمعالجة النصوص
+from network_mapper.models import NetworkDevice # <-- استيراد النموذج الجديد
 import requests
 import subprocess
 import json
@@ -20,7 +22,6 @@ from django.core.mail import send_mail
 from django.template import Template, Context
 from .models import PhishingCampaign, PhishingResult
 from django.utils import timezone
-
 
 
 
@@ -818,3 +819,61 @@ def clone_landing_page(page_id, url_to_clone):
         return error_message
     
     
+
+@shared_task
+def run_network_discovery_task(ip_range, interface):
+    print(f"Starting network discovery for range '{ip_range}' on interface '{interface}'...")
+    
+    command_str = f"sudo /usr/sbin/netdiscover -r {ip_range} -i {interface} -P -N"
+    
+    output = ""
+    try:
+        result = subprocess.run(
+            command_str, 
+            shell=True,
+            timeout=60, 
+            capture_output=True, 
+            # لا نستخدم text=True هنا، سنتعامل مع فك التشفير يدويًا
+        )
+        # نقوم بفك التشفير يدويًا مع معالجة الأخطاء
+        stdout = result.stdout.decode('utf-8', errors='ignore') if result.stdout else ""
+        stderr = result.stderr.decode('utf-8', errors='ignore') if result.stderr else ""
+        output = stdout + stderr
+
+    except subprocess.TimeoutExpired as e:
+        # --- هذا هو التصحيح ---
+        # نقوم بفك التشفير يدويًا لكل مخرج على حدة
+        stdout = e.stdout.decode('utf-8', errors='ignore') if e.stdout else ""
+        stderr = e.stderr.decode('utf-8', errors='ignore') if e.stderr else ""
+        output = stdout + stderr
+        print(f"Netdiscover timed out as expected. Output collected.")
+        
+    except Exception as e:
+        print(f"Netdiscover failed to run unexpectedly: {e}")
+        return f"Netdiscover failed: {e}"
+
+    # --- باقي كود التحليل يبقى كما هو تمامًا ---
+    device_pattern = re.compile(
+        r"^\s*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+([0-9a-fA-F:]{17})\s+\d+\s+\d+\s+(.*)$"
+    )
+    
+    discovered_count = 0
+    updated_count = 0
+    for line in output.splitlines():
+        match = device_pattern.match(line.strip())
+        if match:
+            ip, mac, vendor = match.groups()
+            device, created = NetworkDevice.objects.get_or_create(
+                mac_address=mac.lower(),
+                defaults={'ip_address': ip, 'vendor': vendor.strip()}
+            )
+            if not created:
+                device.ip_address = ip
+                device.vendor = vendor.strip()
+                device.save()
+                updated_count += 1
+            else:
+                discovered_count += 1
+            
+    total_found = discovered_count + updated_count
+    return f"Network discovery completed. Found {discovered_count} new devices and updated {updated_count} existing ones. Total: {total_found}."

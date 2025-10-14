@@ -1,0 +1,147 @@
+<!-- network_mapper/templates/network_mapper/network_map.html -->
+{% extends "core/base.html" %}
+
+{% block title %}Network Map & Discovery{% endblock %}
+
+{% block content %}
+<div class="space-y-10 animate-fadeIn">
+
+    <!-- Header & Control Section -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl shadow-lg border border-slate-700 p-8">
+        <div class="mb-6">
+            <h2 class="text-3xl font-extrabold text-white mb-2 flex items-center gap-2">
+                🌐 Network Map & Discovery
+            </h2>
+            <p class="text-gray-400">Enter a network range and interface to discover all active devices in real-time.</p>
+        </div>
+        
+        <form method="post" action="{% url 'start_network_scan' %}" id="scan-button-container">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <!-- IP Range Input -->
+                <div class="md:col-span-2">
+                    <label for="ip_range" class="block text-sm font-medium text-gray-400 mb-2">IP Range</label>
+                    <input type="text" name="ip_range" id="ip_range" required 
+                           class="w-full bg-slate-800/70 border border-slate-600 rounded-xl p-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
+                           placeholder="e.g., 192.168.1.0/24">
+                </div>
+
+                <!-- Interface Input -->
+                <div class="md:col-span-2">
+                    <label for="interface" class="block text-sm font-medium text-gray-400 mb-2">Network Interface</label>
+                    <input type="text" name="interface" id="interface" required 
+                           class="w-full bg-slate-800/70 border border-slate-600 rounded-xl p-3 text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
+                           placeholder="e.g., wlo1 or eth0">
+                </div>
+
+                <!-- Submit Button -->
+                <div class="md:col-span-1">
+                    <button 
+                        type="submit" 
+                        class="w-full bg-blue-600 hover:bg-blue-700 transition-all duration-200 px-6 py-3 rounded-xl text-white font-semibold shadow-lg hover:shadow-blue-500/30 flex items-center justify-center gap-2"
+                    >
+                        🔍 <span>Start Scan</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5 shadow hover:shadow-blue-500/20 transition">
+            <h4 class="text-gray-400 text-sm uppercase">Total Devices</h4>
+            <p class="text-3xl font-bold text-white mt-2">{{ devices|length }}</p>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5 shadow hover:shadow-green-500/20 transition">
+            <h4 class="text-gray-400 text-sm uppercase">Active Hosts</h4>
+            <p class="text-3xl font-bold text-green-400 mt-2">{{ devices|length }}</p>
+        </div>
+        <div class="bg-slate-800/50 border border-slate-700 rounded-2xl p-5 shadow hover:shadow-purple-500/20 transition">
+            <h4 class="text-gray-400 text-sm uppercase">Last Scan</h4>
+            <p class="text-lg font-semibold text-gray-300 mt-2">
+                {% if devices %}
+                    {{ devices.0.last_seen|date:"Y-m-d H:i" }}
+                {% else %}
+                    -
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Devices Table -->
+    <div class="bg-slate-900/60 border border-slate-700 rounded-2xl shadow-xl overflow-hidden">
+        <div class="p-6 border-b border-slate-700 flex items-center justify-between">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                💻 Discovered Devices
+            </h3>
+            <span class="text-sm text-gray-400">Total: {{ devices|length }}</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-300">
+                <thead class="bg-slate-800 text-gray-400 uppercase text-xs tracking-wider">
+                    <tr>
+                        <th class="px-6 py-3">IP Address</th>
+                        <th class="px-6 py-3">MAC Address</th>
+                        <th class="px-6 py-3">Hostname</th>
+                        <th class="px-6 py-3">Vendor</th>
+                        <th class="px-6 py-3">Last Seen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="px-6 py-4 font-mono">
+                            <a href="{% url 'scanner' %}?url={{ device.ip_address }}" 
+                            title="Run a full scan on this device"
+                            class="text-blue-400 hover:text-cyan-300 hover:underline">
+                            {{ device.ip_address }}
+                            </a>
+                        </td> 
+                        <td class="px-6 py-4 font-mono text-gray-300">{{ device.mac_address }}</td>
+                        <td class="px-6 py-4">{{ device.hostname|default:"-" }}</td>
+                        <td class="px-6 py-4">{{ device.vendor|default:"-" }}</td>
+                        <td class="px-6 py-4 text-gray-400">{{ device.last_seen|date:"Y-m-d H:i" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500">
+                            No devices discovered yet. Run a scan to populate this table.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- --- إضافة جديدة: سكربت التحديث التلقائي --- -->
+{% if is_scan_active %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // أضف مؤشرًا بصريًا
+        const scanButton = document.querySelector('#scan-button-container button');
+        if (scanButton) {
+            scanButton.disabled = true;
+            scanButton.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Scanning...
+            `;
+        }
+
+        // أعد تحميل الصفحة كل 15 ثانية
+        setTimeout(function() {
+            window.location.reload();
+        }, 15000); // 15000 ميلي ثانية = 15 ثانية
+    });
+</script>
+{% endif %}
+<!-- --------------------------------------- -->
+
+{% endblock %}
