@@ -2,7 +2,7 @@
 
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
+import uuid
 # --- النماذج الأساسية ---
 
 class Asset(models.Model):
@@ -74,6 +74,8 @@ class Scan(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     task_id = models.CharField(max_length=255, null=True, blank=True, editable=False)
+    is_playbook_scan = models.BooleanField(default=False, help_text="Was this scan initiated by a playbook?")
+    eyewitness_report_path = models.CharField(max_length=500, blank=True, null=True, help_text="Path to the generated Eyewitness report")
     def __str__(self):
         tool_name = self.tool.name if self.tool else "Unknown"
         return f"{tool_name} scan for {self.target_url} ({self.status})"
@@ -84,7 +86,88 @@ class Vulnerability(models.Model):
     severity = models.CharField(max_length=50)
     cve_id = models.CharField(max_length=50, blank=True, null=True)
     details = models.JSONField()
-    
+    ai_analysis = models.TextField(blank=True, null=True, help_text="AI-generated analysis of the vulnerability")   
     metasploit_module = models.CharField(max_length=200, blank=True, null=True, help_text="The corresponding Metasploit module name")
     
     def __str__(self): return self.description[:80]
+    
+
+class EmailTemplate(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    subject = models.CharField(max_length=255, help_text="The subject of the email. You can use {{target_name}}.")
+    body = models.TextField(help_text="The HTML body of the email. Use {{phishing_link}} for the malicious link and {{target_name}} for the target's name.")
+    telegram_message = models.TextField(
+        blank=True, null=True, 
+        help_text="Plain text message for Telegram. Use {{phishing_link}} and {{target_name}}."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class LandingPage(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    html_content = models.TextField(help_text="The full HTML source of the cloned landing page.")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class PhishingTarget(models.Model):
+    email = models.EmailField(unique=True)
+    name = models.CharField(max_length=200, blank=True, null=True)
+    telegram_user_id = models.CharField(max_length=100, blank=True, null=True, help_text="The target's numeric Telegram User ID")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+class PhishingCampaign(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = 'DRAFT', _('Draft')
+        SCHEDULED = 'SCHEDULED', _('Scheduled')
+        IN_PROGRESS = 'IN_PROGRESS', _('In Progress')
+        COMPLETED = 'COMPLETED', _('Completed')
+
+    name = models.CharField(max_length=200, unique=True)
+    email_template = models.ForeignKey(EmailTemplate, on_delete=models.CASCADE)
+    landing_page = models.ForeignKey(LandingPage, on_delete=models.CASCADE)
+    targets = models.ManyToManyField(PhishingTarget, related_name='campaigns')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
+    launch_date = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class PhishingResult(models.Model):
+    campaign = models.ForeignKey(PhishingCampaign, on_delete=models.CASCADE, related_name='results')
+    target = models.ForeignKey(PhishingTarget, on_delete=models.CASCADE, related_name='results')
+    unique_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    
+    is_sent = models.BooleanField(default=False)
+    sent_date = models.DateTimeField(null=True, blank=True)
+    
+    is_opened = models.BooleanField(default=False)
+    opened_date = models.DateTimeField(null=True, blank=True)
+    
+    is_clicked = models.BooleanField(default=False)
+    clicked_date = models.DateTimeField(null=True, blank=True)
+    
+    submitted_data = models.BooleanField(default=False)
+    submitted_date = models.DateTimeField(null=True, blank=True)
+    captured_data = models.JSONField(null=True, blank=True, help_text="Stores captured data like username/password.")
+
+    ai_analysis = models.TextField(blank=True, null=True, help_text="AI-generated analysis of the captured data.")
+
+    # --- حقول الأدلة ---
+    captured_ip_address = models.GenericIPAddressField(null=True, blank=True)
+    captured_user_agent = models.CharField(max_length=500, null=True, blank=True)
+    captured_geolocation = models.JSONField(null=True, blank=True, help_text="Stores latitude and longitude")
+    captured_image_path = models.CharField(max_length=500, null=True, blank=True, help_text="Path to the captured webcam image")
+    
+    def __str__(self):
+        return f"Result for {self.target.email} in campaign '{self.campaign.name}'"
+
+    class Meta:
+        unique_together = ('campaign', 'target')

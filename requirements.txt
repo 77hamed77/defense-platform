@@ -24,3 +24,4 @@ pymetasploit3
 
 # Database (for production)
 psycopg2-binary
+lxml

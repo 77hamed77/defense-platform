@@ -1,0 +1,122 @@
+<!-- core/templates/core/email_template_list.html -->
+
+{% extends "core/base.html" %}
+
+{% block title %}Phishing - Email Templates{% endblock %}
+
+{% block content %}
+<div class="space-y-12 animate-fadeIn">
+
+    <!-- Create New Template Section -->
+    <div class="relative card border border-gray-800 rounded-2xl shadow-[0_0_40px_rgba(0,255,200,0.15)] 
+                p-10 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden 
+                transition duration-300 hover:shadow-[0_0_60px_rgba(0,255,200,0.25)]">
+
+        <!-- Glow background -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-green-700/15 via-transparent to-transparent blur-3xl"></div>
+
+        <div class="relative z-10">
+            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3 tracking-wide">
+                <span class="text-green-400 drop-shadow-[0_0_6px_rgba(0,255,150,0.7)]">✉️</span>
+                Create New Email Template
+            </h2>
+            <div class="w-56 h-1.5 bg-gradient-to-r from-green-500 via-cyan-500 to-teal-400 
+                        rounded-full mb-8 shadow-[0_0_12px_rgba(0,255,200,0.5)]"></div>
+            
+            <p class="text-gray-400 mb-8 leading-relaxed border-l-4 border-green-500/50 pl-4 italic">
+                Use placeholders <span class="text-green-400 font-mono">{"{{phishing_link}}"}</span> for the phishing link and 
+                <span class="text-green-400 font-mono">{"{{target_name}}"}</span> for the recipient's name.
+            </p>
+            
+            <form method="post" class="space-y-8">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-300 mb-2">Template Name</label>
+                        <input type="text" name="name" id="name" required
+                               class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white placeholder-gray-500 
+                                      focus:ring-2 focus:ring-green-500 focus:border-green-400 outline-none transition duration-200 
+                                      hover:border-green-400/60 hover:shadow-[0_0_15px_rgba(0,255,200,0.3)]"
+                               placeholder="e.g., Urgent Password Reset">
+                    </div>
+                    <div>
+                        <label for="subject" class="block text-sm font-medium text-gray-300 mb-2">Email Subject</label>
+                        <input type="text" name="subject" id="subject" required
+                               class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white placeholder-gray-500 
+                                      focus:ring-2 focus:ring-green-500 focus:border-green-400 outline-none transition duration-200 
+                                      hover:border-green-400/60 hover:shadow-[0_0_15px_rgba(0,255,200,0.3)]"
+                               placeholder="Action Required: Update Your Account">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="body" class="block text-sm font-medium text-gray-300 mb-2">Email Body (HTML)</label>
+                    <textarea name="body" id="body" rows="12" required
+                              class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white font-mono text-sm 
+                                     placeholder-gray-600 focus:ring-2 focus:ring-green-500 focus:border-green-400 outline-none 
+                                     hover:border-green-400/60 hover:shadow-[0_0_15px_rgba(0,255,200,0.3)] transition duration-200"
+                              placeholder="<p>Hello {{target_name}},</p><p>Please click <a href='{{phishing_link}}'>here</a> to update your password.</p>"></textarea>
+                </div>
+                
+                <div>
+                    <label for="telegram_message" class="block text-sm font-medium text-gray-300 mb-2">Telegram Message (Plain Text)</label>
+                    <textarea name="telegram_message" id="telegram_message" rows="5"
+                              class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white font-mono text-sm 
+                                     placeholder-gray-600 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-400 outline-none 
+                                     hover:border-cyan-400/60 hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] transition duration-200"
+                              placeholder="Hello {{target_name}}, please review: {{phishing_link}}"></textarea>
+                </div>
+
+                <div class="flex justify-end pt-4">
+                    <button type="submit"
+                            class="bg-gradient-to-r from-green-600 via-teal-600 to-cyan-600 
+                                   hover:from-green-500 hover:via-teal-500 hover:to-cyan-500 text-white font-semibold py-3 px-8 
+                                   rounded-xl shadow-lg shadow-green-900/50 transform hover:scale-[1.04] active:scale-95 
+                                   transition duration-300 ease-in-out tracking-wide">
+                        💾 Save Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Templates Section -->
+    <div class="relative card border border-gray-800 rounded-2xl p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden 
+                shadow-[0_0_35px_rgba(0,255,200,0.1)] transition duration-300 hover:shadow-[0_0_50px_rgba(0,255,255,0.2)]">
+        <div class="absolute inset-0 bg-gradient-to-tl from-cyan-700/10 via-transparent to-transparent blur-3xl"></div>
+
+        <div class="relative z-10">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3 tracking-wide">
+                <span class="text-cyan-400 drop-shadow-[0_0_6px_rgba(0,255,255,0.6)]">📚</span>
+                Existing Templates
+            </h3>
+
+            <div class="overflow-hidden border border-gray-800/70 rounded-xl backdrop-blur-sm">
+                <table class="w-full text-sm text-left text-gray-300">
+                    <thead class="bg-gray-800/90 text-xs text-gray-400 uppercase tracking-wider">
+                        <tr class="divide-x divide-gray-700">
+                            <th class="px-6 py-3">Template Name</th>
+                            <th class="px-6 py-3">Subject</th>
+                            <th class="px-6 py-3">Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800/70">
+                        {% for template in templates %}
+                        <tr class="hover:bg-gray-800/50 hover:shadow-[0_0_12px_rgba(0,255,255,0.25)] transition duration-200 cursor-pointer">
+                            <td class="px-6 py-3 font-semibold text-gray-200">{{ template.name }}</td>
+                            <td class="px-6 py-3 text-gray-300">{{ template.subject|truncatechars:60 }}</td>
+                            <td class="px-6 py-3 whitespace-nowrap text-gray-400">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-10 text-gray-600 italic">No email templates created yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

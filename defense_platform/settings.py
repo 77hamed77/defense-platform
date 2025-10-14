@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,6 +43,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'core',
     'django_filters',
+    
+    'vulnerable_app',
+    'network_mapper',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [
@@ -121,7 +126,8 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / "static"]
-
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -136,3 +142,15 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 # External API Keys
 VIRUSTOTAL_API_KEY = 'ede8ebd86f4c1123741fdf650cbc36affa78f1ff1082fc53569ed3f1e10a04fa'
+GEMINI_API_KEY = 'AIzaSyB969JRvztrI0oKDV8Q7aPHyNAUjg_jkAc'
+TELEGRAM_BOT_TOKEN = '8346563640:AAG-aXp2sirr1fsZoeILEJXPh_F5UCwRKHk'
+
+# --- Email Configuration for Phishing ---
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'your_email@gmail.com'
+DEFAULT_FROM_EMAIL = 'your-email@gmail.com'
+EMAIL_HOST_PASSWORD = 'your_email_password'
+# --------------------------------------

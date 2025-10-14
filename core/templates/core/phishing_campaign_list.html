@@ -1,0 +1,145 @@
+<!-- core/templates/core/phishing_campaign_list.html -->
+
+{% extends "core/base.html" %}
+
+{% block title %}Phishing - Campaigns{% endblock %}
+
+{% block content %}
+<div class="space-y-10 animate-fadeIn">
+
+    <!-- Create New Campaign Section -->
+    <div class="relative card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(0,200,255,0.15)] p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden">
+        <!-- Glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-cyan-700/10 via-transparent to-transparent blur-2xl"></div>
+
+        <div class="relative z-10">
+            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3 tracking-wide">
+                <span class="text-cyan-400 drop-shadow-[0_0_6px_rgba(0,200,255,0.7)]">🚀</span>
+                Launch New Campaign
+            </h2>
+            <div class="w-44 h-1.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 rounded-full mb-8 shadow-[0_0_12px_rgba(0,200,255,0.4)]"></div>
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+
+                <!-- Campaign Name & Launch Date -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-300 mb-2">Campaign Name</label>
+                        <input type="text" name="name" id="name" required
+                               class="w-full bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
+                                      focus:ring-2 focus:ring-cyan-500 focus:border-cyan-400 hover:border-cyan-400/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.3)]
+                                      outline-none transition duration-200"
+                               placeholder="e.g., Q4 Security Training">
+                    </div>
+                    <div>
+                        <label for="launch_date" class="block text-sm font-medium text-gray-300 mb-2">Launch Date & Time</label>
+                        <input type="datetime-local" name="launch_date" id="launch_date" required
+                               class="w-full bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 
+                                      focus:border-cyan-400 hover:border-cyan-400/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.3)] outline-none transition duration-200">
+                    </div>
+                </div>
+
+                <!-- Template & Page Selection -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="email_template" class="block text-sm font-medium text-gray-300 mb-2">Email Template</label>
+                        <select name="email_template" id="email_template" required
+                                class="w-full bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 
+                                       focus:border-cyan-400 hover:border-cyan-400/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.3)] outline-none transition duration-200">
+                            <option value="" disabled selected>Select an email template</option>
+                            {% for template in available_templates %}
+                                <option value="{{ template.id }}">{{ template.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="landing_page" class="block text-sm font-medium text-gray-300 mb-2">Landing Page</label>
+                        <select name="landing_page" id="landing_page" required
+                                class="w-full bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 
+                                       focus:border-cyan-400 hover:border-cyan-400/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.3)] outline-none transition duration-200">
+                            <option value="" disabled selected>Select a landing page</option>
+                            {% for page in available_pages %}
+                                <option value="{{ page.id }}">{{ page.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Target Selection -->
+                <div>
+                    <label for="targets" class="block text-sm font-medium text-gray-300 mb-2">Select Targets</label>
+                    <select name="targets" id="targets" required multiple
+                            class="w-full h-48 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 
+                                   focus:border-cyan-400 hover:border-cyan-400/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.3)] outline-none transition duration-200">
+                        {% for target in available_targets %}
+                            <option value="{{ target.id }}">{{ target.name|default:target.email }} ({{ target.email }})</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-xs text-gray-500 mt-2 italic">Hold Ctrl (or Cmd on Mac) to select multiple targets.</p>
+                </div>
+
+                <!-- Submit -->
+                <div class="flex justify-end pt-4">
+                    <button type="submit"
+                            class="bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 
+                                   hover:from-cyan-700 hover:via-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-8 
+                                   rounded-xl shadow-lg shadow-cyan-900/40 transform hover:scale-[1.03] active:scale-95 
+                                   transition duration-300 ease-in-out tracking-wide">
+                        🚀 Launch Campaign
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Campaigns List -->
+    <div class="relative card border border-gray-800 rounded-2xl p-6 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden shadow-[0_0_25px_rgba(0,200,255,0.1)]">
+        <div class="absolute inset-0 bg-gradient-to-tl from-blue-700/10 via-transparent to-transparent blur-2xl"></div>
+        <div class="relative z-10">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3 tracking-wide">
+                <span class="text-blue-400 drop-shadow-[0_0_6px_rgba(0,200,255,0.6)]">📊</span>
+                Existing Campaigns
+            </h3>
+
+            <div class="overflow-hidden border border-gray-800/70 rounded-xl backdrop-blur-sm">
+                <table class="w-full text-sm text-left text-gray-300">
+                    <thead class="bg-gray-800/90 text-xs text-gray-400 uppercase tracking-wider">
+                        <tr class="divide-x divide-gray-700">
+                            <th class="px-5 py-3">Campaign Name</th>
+                            <th class="px-5 py-3">Status</th>
+                            <th class="px-5 py-3">Launch Date</th>
+                            <th class="px-5 py-3 text-center">Targets</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800/70">
+                        {% for campaign in campaigns %}
+                        <tr class="hover:bg-gray-800/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.25)] transition duration-200">
+                            <td class="px-4 py-3 font-semibold">
+                                <a href="{% url 'phishing_campaign_detail' campaign.id %}" class="text-blue-400 hover:underline">
+                                    {{ campaign.name }}
+                                </a>
+                            </td>                            
+                            <td class="px-5 py-3">
+                                <span class="font-semibold px-2.5 py-1 rounded-full text-xs tracking-wide
+                                    {% if campaign.status == 'COMPLETED' %} bg-teal-500/20 text-teal-300
+                                    {% elif campaign.status == 'IN_PROGRESS' %} bg-amber-500/20 text-amber-300 animate-pulse
+                                    {% else %} bg-gray-600/40 text-gray-400 {% endif %}">
+                                    {{ campaign.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 whitespace-nowrap text-gray-400">{{ campaign.launch_date|date:"Y-m-d H:i" }}</td>
+                            <td class="px-5 py-3 text-center font-mono text-cyan-400">{{ campaign.targets.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-600 italic">No campaigns created yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

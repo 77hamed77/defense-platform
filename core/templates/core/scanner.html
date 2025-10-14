@@ -5,54 +5,76 @@
 {% block title %}Scanner Orchestrator{% endblock %}
 
 {% block content %}
-<div class="space-y-8">
+<div class="space-y-10 animate-fadeIn">
+    
     <!-- Scanner Input Section -->
-    <div class="card border border-gray-700 rounded-xl shadow-lg p-8 bg-gray-900">
-        <h2 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
-            <span class="text-blue-400">🚀</span> Scanner Orchestrator
-        </h2>
-        <p class="text-gray-400 mb-6">Select a tool and enter a target to initiate a scan. The process will run securely in the background.</p>
-        
-        <form id="scan-form" method="post" action="{% url 'scanner' %}">
-            {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <!-- Tool Selector -->
-                <select name="tool" required 
-                        class="md:col-span-2 bg-gray-800 border border-gray-600 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
-                    <option value="" disabled selected>Select a Tool</option>
-                    {% for tool in available_tools %}
-                        <option value="{{ tool.id }}">{{ tool.name }}</option>
-                    {% endfor %}
-                </select>
+    <div class="card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(0,150,255,0.15)] p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black backdrop-blur-sm relative overflow-hidden">
+        <!-- Cyber Glow Background -->
+        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent blur-3xl"></div>
 
-                <!-- Target Input -->
-                <input type="text" name="url" required 
-                       class="md:col-span-2 flex-1 bg-gray-800 border border-gray-600 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" 
-                       placeholder="example.com or http://example.com">
-                
-                <!-- Submit Button -->
-                <button id="scan-button" type="submit" 
-                        class="md:col-span-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transform hover:scale-105 transition duration-300 ease-in-out">
-                    Start Scan
-                </button>
-            </div>
-        </form>
+        <div class="relative z-10">
+            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3">
+                <span class="text-blue-400 animate-pulse">🚀</span>
+                Scanner Orchestrator
+            </h2>
+            <div class="w-40 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-400 rounded-full mb-6"></div>
+            <p id="tool-description" class="text-gray-400 mb-8 leading-relaxed">Select a tool and enter a target to initiate a scan. The process will run securely in the background.</p>
+            
+            <form id="scan-form" method="post" action="{% url 'scanner' %}">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    <div id="main-form-grid" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <!-- Tool Selector -->
+                        <select name="tool" id="tool-selector" required 
+                                class="md:col-span-2 bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500 outline-none transition duration-300 hover:border-blue-400">
+                            <option value="" disabled selected>Select a Tool</option>
+                            {% for tool in available_tools %}
+                                <option value="{{ tool.id }}" data-description="{{ tool.description|default_if_none:'' }}">{{ tool.name }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <!-- Target Input (for most tools) -->
+                        <input type="text" name="url" id="target-url" required 
+                            class="md:col-span-2 bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-600 focus:border-blue-500 outline-none transition duration-300 hover:border-blue-400"
+                            placeholder="example.com or http://example.com">
+
+                        <!-- Submit Button -->
+                        <button id="scan-button" type="submit" 
+                            class="md:col-span-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg shadow-blue-900/40 transform hover:scale-105 active:scale-95 transition duration-300 ease-in-out">
+                            Start Scan
+                        </button>
+                    </div>
+
+                    <!-- Hidden Textarea for XXEinjector -->
+                    <div id="xxe-input-container" class="hidden">
+                        <label for="xxe-request" class="block text-sm font-medium text-gray-300 mb-2">Raw HTTP Request (with 'XXEINJECT' placeholder):</label>
+                        <textarea name="xxe_request" id="xxe-request" rows="10" 
+                                class="w-full bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white font-mono text-sm placeholder-gray-600 focus:ring-2 focus:ring-blue-600 focus:border-blue-500 outline-none transition"
+                                placeholder="POST /api/vulnerable HTTP/1.1\nHost: example.com\nContent-Type: application/xml\n\n<?xml version='1.0'?>\n<data>XXEINJECT</data>"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Scans History Section -->
-    <div class="card border border-gray-700 rounded-xl shadow-lg p-6 bg-gray-900">
-        <div class="flex justify-between items-center mb-4">
+    <div class="card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(0,150,255,0.12)] p-6 bg-gradient-to-br from-gray-900 via-black to-gray-950 backdrop-blur-sm">
+        <div class="flex justify-between items-center mb-6">
             <h3 class="text-2xl font-bold text-white flex items-center gap-3">
-                <span class="text-indigo-400">📜</span> Recent Scans
+                <span class="text-indigo-400 animate-pulse">📜</span>
+                Recent Scans
             </h3>
             {% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
-            <span class="text-sm text-yellow-400 animate-pulse">Auto-refreshing...</span>
+            <span class="text-sm text-yellow-400 animate-pulse flex items-center gap-2">
+                <span class="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>
+                Auto-refreshing...
+            </span>
             {% endif %}
         </div>
         
-        <div class="overflow-hidden border border-gray-700 rounded-lg">
+        <div class="overflow-hidden border border-gray-800 rounded-lg shadow-inner shadow-black/40">
             <table class="w-full text-sm text-left text-gray-300">
-                <thead class="bg-gray-800 text-xs text-gray-400 uppercase tracking-wider">
+                <thead class="bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-xs text-gray-400 uppercase tracking-wider border-b border-gray-700">
                     <tr>
                         <th class="px-4 py-3">Tool</th>
                         <th class="px-4 py-3">Target</th>
@@ -64,21 +86,22 @@
                 </thead>
                 <tbody class="divide-y divide-gray-800">
                     {% for scan in scans_history %}
-                    <tr id="scan-row-{{ scan.id }}" class="hover:bg-gray-800/50 transition duration-150"
+                    <tr id="scan-row-{{ scan.id }}" 
+                        class="hover:bg-gradient-to-r hover:from-gray-800/60 hover:via-gray-900 hover:to-gray-800/60 transition-all duration-300"
                         data-start-time="{{ scan.created_at.isoformat }}"
                         data-status="{{ scan.status }}">
                         
                         <td class="px-4 py-3 font-semibold text-gray-200">{{ scan.tool.name|default:"N/A" }}</td>
                         <td class="px-4 py-3 font-mono">
-                            <a href="{% url 'scan_detail' scan.id %}" class="text-blue-400 hover:underline">
+                            <a href="{% url 'scan_detail' scan.id %}" class="text-blue-400 hover:text-cyan-300 hover:underline transition">
                                 {{ scan.target_url|truncatechars:40 }}
                             </a>
                         </td>
                         <td class="px-4 py-3 status-cell">
-                            <span class="font-semibold px-2.5 py-1 rounded-full text-xs
-                                {% if scan.status == 'COMPLETED' %} bg-teal-500/20 text-teal-300
-                                {% elif scan.status == 'RUNNING' or scan.status == 'PENDING' %} bg-amber-500/20 text-amber-300 animate-pulse
-                                {% elif scan.status == 'FAILED' %} bg-rose-500/20 text-rose-300
+                            <span class="font-semibold px-2.5 py-1 rounded-full text-xs shadow-md
+                                {% if scan.status == 'COMPLETED' %} bg-teal-500/20 text-teal-300 border border-teal-400/30
+                                {% elif scan.status == 'RUNNING' or scan.status == 'PENDING' %} bg-amber-500/20 text-amber-300 border border-amber-400/30 animate-pulse
+                                {% elif scan.status == 'FAILED' %} bg-rose-500/20 text-rose-300 border border-rose-400/30
                                 {% endif %}">
                                 {{ scan.get_status_display }}
                             </span>
@@ -86,12 +109,12 @@
                         <td class="px-4 py-3 text-center vulnerabilities-cell">
                             {% if scan.status == 'COMPLETED' %}
                                 {% if scan.vulnerabilities.count > 0 %}
-                                    <span class="font-bold text-red-400 text-base">{{ scan.vulnerabilities.count }}</span>
+                                    <span class="font-bold text-red-400 text-base drop-shadow-[0_0_5px_rgba(255,0,0,0.4)]">{{ scan.vulnerabilities.count }}</span>
                                 {% else %}
-                                    <span class="font-bold text-green-400 text-base">0</span>
+                                    <span class="font-bold text-green-400 text-base drop-shadow-[0_0_5px_rgba(0,255,0,0.4)]">0</span>
                                 {% endif %}
                             {% else %}
-                                <span class="text-gray-500">—</span>
+                                <span class="text-gray-600">—</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-gray-400">{{ scan.created_at|date:"Y-m-d H:i" }}</td>
@@ -99,12 +122,13 @@
                         <!-- Actions / Duration Column -->
                         <td class="px-4 py-3 whitespace-nowrap">
                             <div class="flex items-center justify-center gap-4">
-                                <span class="timer font-mono text-sm text-gray-400 w-20 text-center"></span>
+                                <span class="timer font-mono text-sm text-gray-400 w-20 text-center bg-gray-900/50 rounded-md py-0.5"></span>
                                 
                                 {% if scan.status == 'RUNNING' or scan.status == 'PENDING' %}
                                 <form method="post" action="{% url 'stop_scan' scan.id %}" onsubmit="return confirm('Are you sure you want to terminate this scan?');">
                                     {% csrf_token %}
-                                    <button type="submit" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-1 px-3 rounded-md transition transform hover:scale-110">
+                                    <button type="submit" 
+                                        class="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white text-xs font-bold py-1 px-3 rounded-md shadow-md shadow-red-900/40 transition transform hover:scale-110 active:scale-95">
                                         Stop
                                     </button>
                                 </form>
@@ -114,7 +138,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-6 text-gray-500 italic">No scans have been run yet.</td>
+                        <td colspan="6" class="text-center py-6 text-gray-600 italic">No scans have been run yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -123,9 +147,49 @@
     </div>
 </div>
 
-<!-- JavaScript for Timers and Auto-Refresh -->
+<!-- JavaScript for dynamic form, Timers, and Auto-Refresh -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // --- Dynamic Form Logic ---
+    const toolSelector = document.getElementById('tool-selector');
+    const toolDescription = document.getElementById('tool-description');
+    const targetUrlInput = document.getElementById('target-url');
+    const xxeContainer = document.getElementById('xxe-input-container');
+    const xxeTextarea = document.getElementById('xxe-request');
+    const scanButton = document.getElementById('scan-button');
+    const mainFormGrid = document.getElementById('main-form-grid');
+
+    toolSelector.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        const toolName = selectedOption.textContent;
+        const description = selectedOption.dataset.description;
+
+        toolDescription.textContent = description || 'Select a tool and enter a target.';
+
+        if (toolName === 'XXEinjector') {
+            xxeContainer.classList.remove('hidden');
+            targetUrlInput.style.display = 'none';
+            targetUrlInput.required = false;
+            xxeTextarea.required = true;
+            
+            // Adjust grid for better layout when textarea is visible
+            mainFormGrid.classList.remove('md:grid-cols-5');
+            mainFormGrid.classList.add('md:grid-cols-1');
+            scanButton.classList.remove('md:col-span-1');
+            scanButton.classList.add('md:col-span-1'); // Button will be on its own line
+        } else {
+            xxeContainer.classList.add('hidden');
+            targetUrlInput.style.display = 'block';
+            targetUrlInput.required = true;
+            xxeTextarea.required = false;
+
+            // Revert grid layout
+            mainFormGrid.classList.add('md:grid-cols-5');
+            mainFormGrid.classList.remove('md:grid-cols-1');
+            scanButton.classList.add('md:col-span-1');
+        }
+    });
+
     // --- Timer Logic ---
     const timerRows = document.querySelectorAll('tr[data-start-time]');
     
@@ -148,19 +212,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const startTime = new Date(startTimeStr);
-        
         const updateTimer = () => {
             const now = new Date();
             const elapsedSeconds = Math.round((now - startTime) / 1000);
             timerEl.textContent = formatDuration(elapsedSeconds);
         };
-
         const intervalId = setInterval(updateTimer, 1000);
-        row.dataset.intervalId = intervalId; // Store interval ID for later cleanup
-        updateTimer(); // Run once immediately
+        row.dataset.intervalId = intervalId;
+        updateTimer();
     });
 
-    // --- Auto-Refresh Logic (remains the same) ---
+    // --- Auto-Refresh Logic ---
     {% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
         const scanId = {{ scans_history.0.id }};
         const statusUrl = `/api/scans/${scanId}/status/`;
@@ -181,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 clearInterval(pollingInterval);
             }
         };
-        const pollingInterval = setInterval(checkStatus, 10000);
+        const pollingInterval = setInterval(checkStatus, 5000); // Check every 5 seconds
     {% endif %}
 });
 </script>

@@ -1,69 +1,151 @@
 <!-- core/templates/core/base.html -->
 {% load static %}
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Defense Platform{% endblock %}</title>
-    
-    <!-- Frameworks and Libraries -->
+
+    <!-- Tailwind & Alpine -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Custom Styles -->
+
+    <!-- Custom Theme -->
     <style>
-        /* Simple dark mode theme for demonstration */
-        body { background-color: #111827; color: #d1d5db; }
-        .card { background-color: #1f2937; border-color: #374151; }
-        .table-header { background-color: #374151; }
-        .table-row-dark { background-color: #1f2937; }
-        .table-row-light { background-color: #2b3a4f; }
-        
-        /* Severity Colors */
-        .severity-low { background-color: rgb(49 163 89 / 72%); color: white; }
-        .severity-medium { background-color: #f59e0b; color: white; }
-        .severity-high { background-color: rgb(111 38 38); color: white; }
-        .severity-critical { background-color: #8b5cf6; color: white; }
+        body {
+            background-color: #0f172a; /* أغمق قليلاً لإحساس أمني احترافي */
+            color: #d1d5db;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .card {
+            background: linear-gradient(to bottom right, #1e293b, #0f172a);
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+        }
+
+        .table-header {
+            background-color: #1e293b;
+        }
+
+        .table-row-dark {
+            background-color: #1e293b;
+        }
+
+        .table-row-light {
+            background-color: #27354a;
+        }
+
+        /* ألوان درجات الخطورة */
+        .severity-low { background-color: #10b981; color: #fff; }
+        .severity-medium { background-color: #f59e0b; color: #fff; }
+        .severity-high { background-color: #ef4444; color: #fff; }
+        .severity-critical { background-color: #8b5cf6; color: #fff; }
+
+        /* شريط التنقل المتحرك */
+        .nav-link {
+            position: relative;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link::after {
+            content: "";
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background-color: #3b82f6;
+            transition: width 0.3s ease;
+        }
+
+        .nav-link:hover::after {
+            width: 100%;
+        }
     </style>
+    <!-- --- Leaflet.js CSS --- -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
     <link rel="icon" href="{% static 'images/eagle-icon.svg' %}" type="image/svg+xml">
-
 </head>
-<body class="font-sans antialiased">
-    <nav class="bg-gray-900 border-b border-gray-700 px-6 py-4 sticky top-0 z-50 shadow-lg">
-    <div class="container mx-auto flex justify-between items-center">
-        
-        <!-- Logo and Title -->
-        <div class="flex items-center space-x-4">
-            <img src="{% static 'images/eagle-icon.svg' %}" alt="Logo" class="h-10 w-10">
-            <h1 class="text-2xl font-extrabold text-white tracking-wide">
-                <a href="{% url 'dashboard' %}" class="hover:text-blue-400 transition duration-300">
-                    Smart Cybersecurity Division
-                </a>
-            </h1>
+
+<body class="antialiased selection:bg-blue-600 selection:text-white">
+    <!-- Navbar -->
+    <nav class="bg-gray-900/90 backdrop-blur-sm border-b border-gray-700 shadow-lg sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center px-6 py-4">
+            
+            <!-- Logo -->
+            <div class="flex items-center space-x-4">
+                <img src="{% static 'images/eagle-icon.svg' %}" alt="Logo" class="h-10 w-10">
+                <h1 class="text-2xl font-extrabold text-white tracking-wide">
+                    <a href="{% url 'dashboard' %}" class="hover:text-blue-400 transition duration-300">
+                        Smart Cybersecurity Division
+                    </a>
+                </h1>
+            </div>
+
+            <!-- Navigation Links -->
+            <div class="hidden md:flex items-center space-x-6 text-sm">
+                <a href="{% url 'dashboard' %}" class="nav-link text-gray-300 hover:text-white">Dashboard</a>
+                <a href="{% url 'ioc-list' %}" class="nav-link text-gray-300 hover:text-white">IOCs</a>
+                <a href="{% url 'hunting' %}" class="nav-link text-gray-300 hover:text-white">Hunting</a>
+                <a href="{% url 'scanner' %}" class="nav-link text-gray-300 hover:text-white">Scanner</a>
+
+                <!-- Dropdown: Phishing -->
+                <div class="relative" x-data="{ open: false }">
+                    <button @click="open = !open" class="nav-link flex items-center text-gray-300 hover:text-white focus:outline-none">
+                        <span>Phishing</span>
+                        <svg class="w-4 h-4 ml-1 transition-transform duration-300" 
+                             :class="{ 'rotate-180': open }"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                    </button>
+                    <div x-show="open" @click.away="open = false" 
+                         x-transition
+                         class="absolute right-0 mt-2 w-52 bg-gray-800 border border-gray-700 rounded-md shadow-lg py-1 z-50">
+                        <a href="{% url 'phishing_campaign_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Campaigns</a>
+                        <a href="{% url 'landing_page_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Landing Pages</a>
+                        <a href="{% url 'email_template_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Email Templates</a>
+                        <a href="{% url 'phishing_target_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Targets</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden">
+                <button @click="openMenu = !openMenu" x-data="{ openMenu: false }"
+                        class="text-gray-300 hover:text-white focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
         </div>
+    </nav>
 
-        <!-- Navigation Links -->
-        <div class="flex items-center space-x-6">
-            <a href="{% url 'dashboard' %}" class="text-gray-300 hover:text-white transition duration-200">Dashboard</a>
-            <a href="{% url 'ioc-list' %}" class="text-gray-300 hover:text-white transition duration-200">IOCs</a>
-            <a href="{% url 'hunting' %}" class="text-gray-300 hover:text-white transition duration-200">Hunting</a>
-            <a href="{% url 'scanner' %}" class="text-gray-300 hover:text-white transition duration-200">Scanner</a>
-        </div>
-    </div>
-</nav>
-
-
-    <main class="container mx-auto p-4">
+    <!-- Main Content -->
+    <main class="container mx-auto p-6">
         
-        <!-- System Messages -->
+        <!-- Flash Messages -->
         {% if messages %}
-        <div class="mb-4 space-y-2">
+        <div class="mb-6 space-y-2">
             {% for message in messages %}
-            <div class="p-3 rounded-md text-white
+            <div class="p-3 rounded-md text-white font-medium shadow-md
                 {% if message.tags == 'success' %} bg-green-600 
-                {% elif message.tags == 'warning' %} bg-yellow-600 
+                {% elif message.tags == 'warning' %} bg-yellow-600 text-black
                 {% elif message.tags == 'error' %} bg-red-600 
                 {% else %} bg-blue-600 {% endif %}">
                 {{ message }}
@@ -72,9 +154,18 @@
         </div>
         {% endif %}
 
+        <!-- Dynamic Page Content -->
         {% block content %}
-        <!-- Page specific content will be injected here -->
         {% endblock %}
     </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm py-6 border-t border-gray-800 mt-12">
+        © 2025 Smart Cybersecurity Division — All Rights Reserved
+    </footer>
+     <!-- --- Leaflet.js JavaScript --- -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
 </body>
 </html>

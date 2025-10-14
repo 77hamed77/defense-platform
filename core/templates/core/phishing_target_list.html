@@ -1,0 +1,101 @@
+<!-- core/templates/core/phishing_target_list.html -->
+
+{% extends "core/base.html" %}
+
+{% block title %}Phishing - Targets{% endblock %}
+
+{% block content %}
+<div class="space-y-10 animate-fadeIn">
+
+    <!-- Add New Target Section -->
+    <div class="relative card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(255,100,0,0.25)] p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden">
+        <!-- Glow effect -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-orange-700/10 via-transparent to-transparent blur-2xl"></div>
+
+        <div class="relative z-10">
+            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3 tracking-wide">
+                <span class="text-orange-400 drop-shadow-[0_0_6px_rgba(255,150,50,0.6)]">🎯</span>
+                Add New Target
+            </h2>
+            <div class="w-44 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 rounded-full mb-8 shadow-[0_0_10px_rgba(255,100,0,0.5)]"></div>
+            
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-5 items-center">
+                    <input type="text" name="name"
+                        class="md:col-span-2 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
+                               focus:ring-2 focus:ring-orange-500 focus:border-orange-400 outline-none transition duration-200 
+                               hover:border-orange-400/70 hover:shadow-[0_0_10px_rgba(255,150,50,0.3)]"
+                        placeholder="Full Name (Optional)">
+
+                    <input type="email" name="email" required
+                        class="md:col-span-2 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
+                               focus:ring-2 focus:ring-orange-500 focus:border-orange-400 outline-none transition duration-200 
+                               hover:border-orange-400/70 hover:shadow-[0_0_10px_rgba(255,150,50,0.3)]"
+                        placeholder="target@example.com">
+
+                    <!-- --- إضافة جديدة: حقل Telegram ID --- -->
+                    <input type="text" name="telegram_id"
+                        class="md:col-span-1 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
+                               focus:ring-2 focus:ring-orange-500 focus:border-orange-400 outline-none transition duration-200 
+                               hover:border-orange-400/70 hover:shadow-[0_0_10px_rgba(255,150,50,0.3)]"
+                        placeholder="Telegram ID (Optional)">
+                    
+                    <button type="submit"
+                        class="md:col-span-1 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-500 
+                               hover:from-red-700 hover:via-orange-700 hover:to-yellow-600 text-white font-semibold py-3 px-6 
+                               rounded-xl shadow-lg shadow-red-900/40 transform hover:scale-[1.03] active:scale-95 
+                               transition duration-300 ease-in-out tracking-wide">
+                        ➕ Add Target
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Existing Targets List -->
+    <div class="relative card border border-gray-800 rounded-2xl p-6 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden shadow-[0_0_25px_rgba(0,200,255,0.1)]">
+        <div class="absolute inset-0 bg-gradient-to-tl from-cyan-700/10 via-transparent to-transparent blur-2xl"></div>
+        <div class="relative z-10">
+            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3 tracking-wide">
+                <span class="text-cyan-400 drop-shadow-[0_0_6px_rgba(0,255,255,0.6)]">👥</span>
+                Existing Targets
+            </h3>
+
+            <div class="overflow-hidden border border-gray-800/70 rounded-xl backdrop-blur-sm">
+                <table class="w-full text-sm text-left text-gray-300">
+                    <thead class="bg-gray-800/90 text-xs text-gray-400 uppercase tracking-wider">
+                        <tr class="divide-x divide-gray-700">
+                            <th class="px-5 py-3">Name</th>
+                            <th class="px-5 py-3">Email</th>
+                            <th class="px-5 py-3">Telegram ID</th> <!-- عمود جديد -->
+                            <th class="px-5 py-3">Added At</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-800/70">
+                        {% for target in targets %}
+                        <tr class="hover:bg-gray-800/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition duration-200">
+                            <td class="px-5 py-3 font-semibold text-gray-200">{{ target.name|default:"N/A" }}</td>
+                            <td class="px-5 py-3 text-cyan-400 font-mono">{{ target.email }}</td>
+                            <td class="px-5 py-3 text-blue-400 font-mono flex items-center gap-2">
+                                {% if target.telegram_user_id %}
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22,3.2l-2.3,10.9c-0.1,0.6-0.5,0.7-1,0.4l-3.5-2.6l-1.7,1.6c-0.2,0.2-0.3,0.3-0.6,0.3c-0.1,0-0.2,0-0.3-0.1l0.3-3.6l6.8-6.1c0.3-0.2-0.1-0.4-0.4-0.2l-8.4,5.3l-3.4-1.1c-0.6-0.2-0.6-0.6,0.1-0.9L21,2.3C21.6,2,22.1,2.3,22,3.2z M10.4,14.6l9.3,6.8c0.6,0.3,1,0.1,1.1-0.5l3-14.1c0.2-0.8-0.5-1.2-1.2-0.9L2,11.8c-0.8,0.3-0.8,0.8-0.1,1l5.4,1.7L10.4,14.6z"/></svg>
+                                    {{ target.telegram_user_id }}
+                                {% else %}
+                                    <span class="text-gray-600">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-5 py-3 whitespace-nowrap text-gray-400">{{ target.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-600 italic">No targets added yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
