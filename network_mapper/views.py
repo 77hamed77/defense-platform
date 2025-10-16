@@ -6,6 +6,7 @@ from core.models import Tool
 from core.tasks import run_network_discovery_task # <-- سننشئ هذه المهمة
 from celery.result import AsyncResult
 from django.utils import timezone
+from core.tasks import run_routersploit_audit # <-- استيراد المهمة الجديدة
 
 def network_map_view(request):
     """
@@ -53,4 +54,16 @@ def start_network_scan_view(request):
          # --- إضافة جديدة: حفظ وقت البدء في الـ session ---
         request.session['last_scan_start_time'] = timezone.now().isoformat()
         
+    return redirect('network_map')
+
+
+def audit_device_view(request, device_id):
+    if request.method == 'POST':
+        try:
+            device = NetworkDevice.objects.get(id=device_id)
+            run_routersploit_audit.delay(device.id)
+            messages.success(request, f"RouterSploit audit has been scheduled for {device.ip_address}.")
+        except NetworkDevice.DoesNotExist:
+            messages.error(request, "Device not found.")
+    
     return redirect('network_map')

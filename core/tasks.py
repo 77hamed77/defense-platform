@@ -22,7 +22,9 @@ from django.core.mail import send_mail
 from django.template import Template, Context
 from .models import PhishingCampaign, PhishingResult
 from django.utils import timezone
-
+import pexpect # <-- استيراد المكتبة الجديدة
+from .models import Scan, Tool, Vulnerability
+from network_mapper.models import NetworkDevice
 
 
 @shared_task
@@ -831,7 +833,7 @@ def run_network_discovery_task(ip_range, interface):
         result = subprocess.run(
             command_str, 
             shell=True,
-            timeout=60, 
+            timeout=900, 
             capture_output=True, 
             # لا نستخدم text=True هنا، سنتعامل مع فك التشفير يدويًا
         )
@@ -877,3 +879,78 @@ def run_network_discovery_task(ip_range, interface):
             
     total_found = discovered_count + updated_count
     return f"Network discovery completed. Found {discovered_count} new devices and updated {updated_count} existing ones. Total: {total_found}."
+
+
+# --- إضافة جديدة: مهمة مخصصة لـ RouterSploit ---
+@shared_task
+def run_routersploit_audit(device_id):
+    try:
+        device = NetworkDevice.objects.get(id=device_id)
+        tool = Tool.objects.get(name='RouterSploit')
+    except (NetworkDevice.DoesNotExist, Tool.DoesNotExist):
+        return f"Device or RouterSploit tool not found."
+
+    # إنشاء سجل فحص جديد لهذه العملية
+    scan = Scan.objects.create(
+        tool=tool,
+        target_url=device.ip_address,
+        status='RUNNING'
+    )
+
+    log_file_path = f"/tmp/routersploit_log_{scan.id}.txt"
+    log_file = open(log_file_path, "w")
+    
+    # المسار إلى سكربت RouterSploit
+    rsf_script = "/home/ahmad/routersploit/rsf.py"
+    
+    try:
+        # بدء عملية RouterSploit
+ # --- تعديل هنا: استخدم python3 بشكل صريح ---
+        child = pexpect.spawn(f"python3 {rsf_script}", logfile=log_file, encoding='utf-8', timeout=900)
+        # 1. انتظر موجه الأوامر الأولي
+        child.expect(r'rsf >', timeout=600) # زيادة المهلة الأولية
+        
+        # 2. استخدم وحدة autopwn
+        child.sendline('use scanners/autopwn')
+        child.expect(r'rsf \(autopwn\) >')
+        
+        # 3. قم بتعيين الهدف
+        child.sendline(f'set target {device.ip_address}')
+        child.expect(r'rsf \(autopwn\) >')
+        
+        # 4. قم بتشغيل الفحص (هذا قد يستغرق وقتًا طويلاً)
+        child.sendline('run')
+        # انتظر حتى ينتهي (قد يستغرق دقائق)، زد المهلة
+        child.expect(r'rsf \(autopwn\) >', timeout=1800) # مهلة 30 دقيقة
+        
+        # 5. اخرج من العملية
+        child.sendline('exit')
+        child.close()
+        log_file.close()
+
+        # --- تحليل النتائج ---
+        with open(log_file_path, 'r') as f:
+            output = f.read()
+        
+        if "[+] Target is vulnerable" in output:
+            Vulnerability.objects.create(
+                scan=scan,
+                description=f"RouterSploit found one or more vulnerabilities on {device.ip_address}",
+                severity="High",
+                details={'full_log': output}
+            )
+        
+        scan.status = 'COMPLETED'
+        result_message = "RouterSploit audit completed."
+
+    except Exception as e:
+        scan.status = 'FAILED'
+        result_message = f"RouterSploit audit failed: {e}"
+    
+    finally:
+        scan.completed_at = timezone.now()
+        scan.save()
+        if os.path.exists(log_file_path):
+            os.remove(log_file_path)
+            
+    return result_message
