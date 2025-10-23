@@ -1,126 +1,249 @@
 <!-- core/templates/core/dashboard.html -->
-
 {% extends "core/base.html" %}
-
-{% block title %}Dashboard - Defense Platform{% endblock %}
+{% block title %}Command Center Dashboard{% endblock %}
 
 {% block content %}
-<div class="space-y-10 animate-fadeIn">
+<div class="relative overflow-hidden text-gray-200">
+    <!-- 🌌 خلفية Matrix Rain -->
+    <canvas id="matrixRain" class="fixed inset-0 w-full h-full -z-10"></canvas>
+    <div class="absolute inset-0 bg-gradient-to-b from-black/90 via-[#001a0f]/90 to-black/95 -z-10"></div>
 
-    <!-- 🧠 الإحصائيات العلوية -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Total Alerts -->
-        <div class="bg-gradient-to-br from-red-900/60 via-gray-900 to-black border border-red-800/40 rounded-2xl p-6 text-center shadow-lg hover:shadow-red-600/30 transition">
-            <h2 class="text-gray-400 font-semibold text-sm uppercase tracking-wider">Total Alerts</h2>
-            <p class="text-4xl font-extrabold mt-2 text-red-400 drop-shadow-md">{{ total_alerts }}</p>
+    <!-- 🧠 الإحصائيات العلوية المحدثة -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 mt-6">
+        <div class="relative p-6 rounded-2xl border border-red-700/50 bg-black/60 shadow-[0_0_25px_rgba(255,0,0,0.25)] text-center transition">
+            <h2 class="text-red-400 text-sm font-semibold uppercase tracking-widest">New Critical Alerts</h2>
+            <p class="text-5xl font-extrabold mt-3 text-red-300 drop-shadow-[0_0_10px_rgba(255,0,0,0.6)] counter" data-target="{{ critical_alerts_count }}">0</p>
         </div>
-
-        <!-- Managed Assets -->
-        <div class="bg-gradient-to-br from-blue-900/60 via-gray-900 to-black border border-blue-800/40 rounded-2xl p-6 text-center shadow-lg hover:shadow-blue-600/30 transition">
-            <h2 class="text-gray-400 font-semibold text-sm uppercase tracking-wider">Managed Assets</h2>
-            <p class="text-4xl font-extrabold mt-2 text-blue-400 drop-shadow-md">{{ total_assets }}</p>
+        <div class="relative p-6 rounded-2xl border border-yellow-700/50 bg-black/60 shadow-[0_0_25px_rgba(255,200,0,0.25)] text-center transition">
+            <h2 class="text-yellow-400 text-sm font-semibold uppercase tracking-widest">Total Vulnerabilities</h2>
+            <p class="text-5xl font-extrabold mt-3 text-yellow-300 drop-shadow-[0_0_10px_rgba(255,200,0,0.6)] counter" data-target="{{ total_vulnerabilities }}">0</p>
         </div>
-
-        <!-- Tracked IOCs -->
-        <div class="bg-gradient-to-br from-emerald-900/60 via-gray-900 to-black border border-emerald-800/40 rounded-2xl p-6 text-center shadow-lg hover:shadow-emerald-600/30 transition">
-            <h2 class="text-gray-400 font-semibold text-sm uppercase tracking-wider">Tracked IOCs</h2>
-            <p class="text-4xl font-extrabold mt-2 text-emerald-400 drop-shadow-md">{{ total_iocs }}</p>
+        <div class="relative p-6 rounded-2xl border border-blue-700/50 bg-black/60 shadow-[0_0_25px_rgba(0,150,255,0.25)] text-center transition">
+            <h2 class="text-blue-400 text-sm font-semibold uppercase tracking-widest">Network Devices</h2>
+            <p class="text-5xl font-extrabold mt-3 text-blue-300 drop-shadow-[0_0_10px_rgba(0,150,255,0.6)] counter" data-target="{{ total_devices }}">0</p>
         </div>
     </div>
 
-    <!-- ⚙️ المحتوى الرئيسي -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- الرسم البياني -->
-        <div class="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-blue-500/20 transition">
-            <h2 class="text-xl font-bold mb-6 text-center text-white flex items-center justify-center gap-2">
-                <span class="text-cyan-400">📊</span> Alerts by Severity
-            </h2>
-            <canvas id="severityChart" class="mx-auto"></canvas>
+    <!-- ⚙️ المحتوى الرئيسي (عمودان) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- ===== العمود الأيسر ===== -->
+        <div class="space-y-8">
+            <!-- 🚨 جدول التنبيهات -->
+            <div class="relative bg-black/60 border border-green-800/40 rounded-2xl p-6 shadow-[0_0_25px_rgba(0,255,100,0.2)] backdrop-blur-md">
+                <h2 class="text-xl font-bold mb-6 text-green-300 flex items-center gap-2">🚨 Recent Alerts</h2>
+                <div class="overflow-x-auto rounded-xl border border-green-800/40">
+                    <table class="min-w-full text-sm text-left text-gray-300">
+                        <thead class="bg-green-950/50 text-green-400 uppercase text-xs tracking-wider">
+                            <tr>
+                                <th class="p-3">Timestamp</th>
+                                <th class="p-3">Severity</th>
+                                <th class="p-3">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-green-900/40">
+                            {% for alert in latest_alerts %}
+                            <tr class="hover:bg-green-900/10 transition">
+                                <td class="p-3 text-gray-400">{{ alert.timestamp|date:"Y-m-d H:i" }}</td>
+                                <td class="p-3"><span class="px-3 py-1 rounded-full text-xs font-bold severity-{{ alert.severity|lower }}">{{ alert.get_severity_display }}</span></td>
+                                <td class="p-3"><a href="{% url 'alert-detail' alert.pk %}" class="text-green-400 hover:underline">{{ alert.description|truncatechars:40 }}</a></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center p-6 text-gray-500 italic">No recent alerts.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 🚀 جدول الفحوصات الأخيرة -->
+            <div class="relative bg-black/60 border border-blue-800/40 rounded-2xl p-6 shadow-[0_0_25px_rgba(0,150,255,0.2)] backdrop-blur-md">
+                <h2 class="text-xl font-bold mb-6 text-blue-300 flex items-center gap-2">🚀 Recent Scans</h2>
+                <div class="overflow-x-auto rounded-xl border border-blue-800/40">
+                    <table class="min-w-full text-sm text-left text-gray-300">
+                        <thead class="bg-blue-950/50 text-blue-400 uppercase text-xs">
+                            <tr><th class="p-3">Tool</th><th class="p-3">Target</th><th class="p-3">Date</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-blue-900/40">
+                            {% for scan in latest_scans %}
+                            <tr class="hover:bg-blue-900/10">
+                                <td class="p-3 font-semibold">{{ scan.tool.name }}</td>
+                                <td class="p-3 font-mono"><a href="{% url 'scan_detail' scan.id %}" class="text-blue-400 hover:underline">{{ scan.target_url|truncatechars:25 }}</a></td>
+                                <td class="p-3 text-gray-400">{{ scan.created_at|timesince }} ago</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center p-6 text-gray-500 italic">No recent scans.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- ☁️ جدول فحوصات السحابة الأخيرة -->
+            <div class="relative bg-black/60 border border-purple-800/40 rounded-2xl p-6 shadow-[0_0_25px_rgba(200,100,255,0.2)] backdrop-blur-md">
+                <h2 class="text-xl font-bold mb-6 text-purple-300 flex items-center gap-2">☁️ Recent Cloud Audits</h2>
+                <div class="overflow-x-auto rounded-xl border border-purple-800/40">
+                    <table class="min-w-full text-sm text-left text-gray-300">
+                        <thead class="bg-purple-950/50 text-purple-400 uppercase text-xs">
+                            <tr><th class="p-3">Environment</th><th class="p-3">Status</th><th class="p-3">Date</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-purple-900/40">
+                            {% for scan in latest_cloud_scans %}
+                            <tr class="hover:bg-purple-900/10">
+                                <td class="p-3 font-semibold">{{ scan.environment.name }}</td>
+                                <td class="p-3"><a href="{% url 'cloud_scan_detail' scan.id %}" class="text-purple-400 hover:underline">{{ scan.get_status_display }}</a></td>
+                                <td class="p-3 text-gray-400">{{ scan.created_at|timesince }} ago</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center p-6 text-gray-500 italic">No recent cloud audits.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
-        <!-- جدول التنبيهات -->
-        <div class="bg-gray-900/70 backdrop-blur-sm border border-gray-800 rounded-2xl p-6 shadow-lg lg:col-span-2 hover:shadow-amber-500/20 transition">
-            <h2 class="text-xl font-bold mb-6 text-white flex items-center gap-2">
-                <span class="text-amber-400">🚨</span> Latest Alerts
-            </h2>
-            <div class="overflow-x-auto rounded-xl border border-gray-800">
-                <table class="min-w-full text-sm text-left text-gray-300">
-                    <thead class="bg-gray-800/60 text-gray-300 uppercase text-xs tracking-wider">
-                        <tr>
-                            <th class="p-3">Timestamp</th>
-                            <th class="p-3">Severity</th>
-                            <th class="p-3">Description</th>
-                            <th class="p-3">Source IP</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-800">
-                        {% for alert in latest_alerts %}
-                        <tr class="hover:bg-gray-800/40 transition">
-                            <td class="p-3 whitespace-nowrap text-gray-400">{{ alert.timestamp|date:"Y-m-d H:i:s" }}</td>
-                            <td class="p-3">
-                                <span class="px-3 py-1 rounded-full text-xs font-bold severity-{{ alert.severity|lower }}">
-                                    {{ alert.get_severity_display }}
-                                </span>
-                            </td>
-                            <td class="p-3">
-                                <a href="{% url 'alert-detail' alert.pk %}" class="text-blue-400 hover:text-blue-300 hover:underline transition">
-                                    {{ alert.description|truncatechars:60 }}
-                                </a>
-                            </td>
-                            <td class="p-3 font-mono text-gray-400">{{ alert.source_ip|default:"N/A" }}</td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="text-center p-6 text-gray-500 italic">No alerts found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <!-- ===== العمود الأيمن ===== -->
+        <div class="space-y-8">
+            <!-- 🌐 جدول الأجهزة المكتشفة -->
+            <div class="relative bg-black/60 border border-cyan-800/40 rounded-2xl p-6 shadow-[0_0_25px_rgba(0,255,255,0.2)] backdrop-blur-md">
+                <h2 class="text-xl font-bold mb-6 text-cyan-300 flex items-center gap-2">🌐 Newly Discovered Devices</h2>
+                <div class="overflow-x-auto rounded-xl border border-cyan-800/40">
+                    <table class="min-w-full text-sm text-left text-gray-300">
+                        <thead class="bg-cyan-950/50 text-cyan-400 uppercase text-xs">
+                            <tr><th class="p-3">IP Address</th><th class="p-3">Vendor</th><th class="p-3">Seen</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-cyan-900/40">
+                            {% for device in latest_devices %}
+                            <tr class="hover:bg-cyan-900/10">
+                                <td class="p-3 font-mono"><a href="{% url 'scanner' %}?url={{ device.ip_address }}" class="text-cyan-400 hover:underline">{{ device.ip_address }}</a></td>
+                                <td class="p-3">{{ device.vendor|default:"Unknown"|truncatechars:20 }}</td>
+                                <td class="p-3 text-gray-400">{{ device.last_seen|timesince }} ago</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center p-6 text-gray-500 italic">No devices discovered.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 🎣 جدول حملات التصيد الأخيرة -->
+            <div class="relative bg-black/60 border border-pink-800/40 rounded-2xl p-6 shadow-[0_0_25px_rgba(255,100,200,0.2)] backdrop-blur-md">
+                <h2 class="text-xl font-bold mb-6 text-pink-300 flex items-center gap-2">🎣 Recent Phishing Campaigns</h2>
+                <div class="overflow-x-auto rounded-xl border border-pink-800/40">
+                    <table class="min-w-full text-sm text-left text-gray-300">
+                        <thead class="bg-pink-950/50 text-pink-400 uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Campaign</th>
+                                <th class="p-3 text-center">Clicked</th>
+                                <th class="p-3 text-center">Submitted</th>
+                                <th class="p-3">Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-pink-900/40">
+                            {% for campaign in latest_phishing_campaigns %}
+                            <tr class="hover:bg-pink-900/10">
+                                <td class="p-3 font-semibold">
+                                    <a href="{% url 'phishing_campaign_detail' campaign.id %}" class="text-pink-400 hover:underline">
+                                        {{ campaign.name|truncatechars:20 }}
+                                    </a>
+                                </td>
+                               <td class="p-3 text-center font-mono">{{ campaign.clicked_count }}</td>
+                                <td class="p-3 text-center font-mono text-red-400 font-bold">{{ campaign.submitted_count }}</td>
+                                <td class="p-3 text-gray-400">{{ campaign.created_at|timesince }} ago</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center p-6 text-gray-500 italic">No phishing campaigns launched.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 🔬 جدول تحليلات APK الأخيرة -->
+            <div class="relative bg-black/60 border border-yellow-800/40 rounded-2xl p-6 shadow-[0_0_25px_rgba(255,200,0,0.2)] backdrop-blur-md">
+                <h2 class="text-xl font-bold mb-6 text-yellow-300 flex items-center gap-2">🔬 Recent APK Analyses</h2>
+                <div class="overflow-x-auto rounded-xl border border-yellow-800/40">
+                    <table class="min-w-full text-sm text-left text-gray-300">
+                        <thead class="bg-yellow-950/50 text-yellow-400 uppercase text-xs">
+                            <tr><th class="p-3">Filename</th><th class="p-3">Status</th><th class="p-3">Date</th></tr>
+                        </thead>
+                        <tbody class="divide-y divide-yellow-900/40">
+                            {% for analysis in latest_apk_analyses %}
+                            <tr class="hover:bg-yellow-900/10">
+                                <td class="p-3 font-mono"><a href="{% url 'apk_analysis_detail' analysis.id %}" class="text-yellow-400 hover:underline">{{ analysis.filename|truncatechars:25 }}</a></td>
+                                <td class="p-3">{{ analysis.get_status_display }}</td>
+                                <td class="p-3 text-gray-400">{{ analysis.created_at|timesince }} ago</td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center p-6 text-gray-500 italic">No recent APK analyses.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 🧩 الرسم البياني -->
-{{ severity_labels|json_script:"severity-labels" }}
-{{ severity_data|json_script:"severity-data" }}
+<!-- 🧩 Animation Scripts -->
 <script>
-    const severityLabels = JSON.parse(document.getElementById('severity-labels').textContent);
-    const severityData = JSON.parse(document.getElementById('severity-data').textContent);
+/* ===================== 🔢 Animated Counters ===================== */
+document.querySelectorAll('.counter').forEach(counter => {
+  const target = +counter.dataset.target;
+  if (isNaN(target)) return;
+  const duration = 1500;
+  let current = 0;
+  const increment = target / (duration / 16);
 
-    const ctx = document.getElementById('severityChart').getContext('2d');
+  function update() {
+    current += increment;
+    if (current >= target) {
+      counter.textContent = target.toLocaleString();
+      return;
+    }
+    counter.textContent = Math.ceil(current).toLocaleString();
+    requestAnimationFrame(update);
+  }
+  update();
+});
 
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: severityLabels,
-            datasets: [{
-                label: 'Alerts by Severity',
-                data: severityData,
-                backgroundColor: [
-                    '#22c55e', // Low - Green
-                    '#f59e0b', // Medium - Amber
-                    '#ef4444', // High - Red
-                    '#8b5cf6'  // Critical - Violet
-                ],
-                borderColor: '#111827',
-                borderWidth: 2,
-                hoverOffset: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#d1d5db',
-                        padding: 16,
-                        boxWidth: 14
-                    }
-                }
-            }
-        }
+/* ===================== 🌧️ Matrix Rain Background ===================== */
+const canvas = document.getElementById("matrixRain");
+if (canvas) {
+    const c = canvas.getContext("2d");
+    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth;
+    const chars = "01";
+    const fontSize = 14;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+
+    function draw() {
+      c.fillStyle = "rgba(0,0,0,0.08)";
+      c.fillRect(0, 0, canvas.width, canvas.height);
+      c.fillStyle = "#00ff88";
+      c.font = fontSize + "px monospace";
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars.charAt(Math.floor(Math.random() * chars.length));
+        c.fillText(text, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+    const matrixInterval = setInterval(draw, 40);
+    window.addEventListener("resize", () => {
+      canvas.height = window.innerHeight;
+      canvas.width = window.innerWidth;
     });
+}
 </script>
+
+<style>
+.severity-low { background-color: #22c55e30; color: #22c55e; border: 1px solid #22c55e80;}
+.severity-medium { background-color: #eab30830; color: #eab308; border: 1px solid #eab30880;}
+.severity-high { background-color: #f9731630; color: #f97316; border: 1px solid #f9731680;}
+.severity-critical { background-color: #dc262630; color: #f87171; border: 1px solid #dc262680;}
+</style>
 {% endblock %}

@@ -1,0 +1,211 @@
+{% extends "core/base.html" %}
+{% block title %}APK Report: {{ analysis.filename }}{% endblock %}
+
+{% block content %}
+<div class="relative min-h-screen overflow-hidden bg-black text-green-400 font-mono">
+  <!-- 🟩 خلفية كود متطاير -->
+  <canvas id="code-bg" class="fixed inset-0 w-full h-full -z-50"></canvas>
+  <div class="absolute inset-0 bg-gradient-to-br from-black via-gray-950 to-green-950/10 -z-40"></div>
+
+  <!-- المحتوى الكامل -->
+  <div class="relative z-10 space-y-8 p-10 animate-fadeIn backdrop-blur-sm bg-black/30 border border-green-700/20 rounded-3xl shadow-[0_0_40px_#00ff99cc]">
+    <!-- Header -->
+    <div>
+      <a href="{% url 'apk_analysis_list' %}" class="text-sm text-green-400 hover:underline">← Back to Analysis List</a>
+      <h1 class="text-3xl font-bold text-green-300 mt-2">APK Analysis Report</h1>
+      <p class="text-green-200 font-mono text-lg">{{ analysis.filename }}</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="p-4 rounded-lg bg-black/50 border border-green-700/40 shadow-[0_0_25px_#00ff9955]">
+        <h4 class="text-sm text-green-500">Package Name</h4>
+        <p class="text-lg font-semibold text-green-300 font-mono">{{ analysis.package_name|default:"N/A" }}</p>
+      </div>
+      <div class="p-4 rounded-lg bg-black/50 border border-green-700/40 shadow-[0_0_25px_#00ff9955]">
+        <h4 class="text-sm text-green-500">SHA256 Hash</h4>
+        <p class="text-xs font-mono text-green-200 break-all">{{ analysis.sha256_hash }}</p>
+      </div>
+      <div class="p-4 rounded-lg bg-black/50 border border-green-700/40 shadow-[0_0_25px_#00ff9955]">
+        <h4 class="text-sm text-green-500">Total Findings</h4>
+        <p class="text-3xl font-bold text-green-300">{{ findings.count }}</p>
+      </div>
+    </div>
+
+    <!-- Static Findings -->
+    <div class="border border-green-800/30 rounded-xl p-6 bg-black/60 shadow-[0_0_25px_#00ff9980]">
+      <h3 class="text-2xl font-bold text-green-300 mb-6">🔍 Static Findings</h3>
+      <div class="space-y-4">
+        {% for finding in findings %}
+        {% if finding.type != "Dynamic HTTP Request" %}
+        <div class="border border-green-800/40 rounded-lg p-4 bg-black/50 hover:border-green-400 transition-all duration-300">
+          <div class="flex justify-between items-start gap-4">
+            <!-- Finding Details -->
+            <div class="flex-1">
+              <span class="font-semibold px-2.5 py-1 rounded-full text-xs
+                  {% if finding.severity == 'CRITICAL' %} bg-red-500/20 text-red-300 border border-red-400/30
+                  {% elif finding.severity == 'HIGH' %} bg-orange-500/20 text-orange-300 border border-orange-400/30
+                  {% elif finding.severity == 'MEDIUM' %} bg-yellow-500/20 text-yellow-300 border border-yellow-400/30
+                  {% else %} bg-green-800/40 text-green-400 border border-green-600/30 {% endif %}">
+                  {{ finding.get_severity_display }}
+              </span>
+              <h4 class="text-base font-semibold text-green-100 mt-2">{{ finding.description }}</h4>
+            </div>
+            <!-- Action Button -->
+            <div class="flex-shrink-0">
+              <form method="post" action="{% url 'analyze_apk_finding' finding.id %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center gap-2 text-xs bg-green-600 text-white px-3 py-1.5 rounded-md hover:bg-green-700 transition-colors">
+                  🤖 Analyze with AI
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Technical Details -->
+          {% if finding.details %}
+          <div class="mt-3">
+            <button class="toggle-details text-xs text-green-400 hover:underline">Show Technical Details</button>
+            <div class="details-content hidden mt-2 bg-black/40 border border-green-800/40 rounded p-3">
+              <pre class="text-xs text-green-200 overflow-auto max-h-60 font-mono whitespace-pre-wrap">{{ finding.details|pprint }}</pre>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- AI Analysis Section -->
+          {% if finding.ai_analysis %}
+          <div class="mt-4 border-t border-green-700/30 pt-4">
+            <h5 class="text-sm font-bold text-green-300 mb-2 flex items-center gap-2">
+              💡 AI Analyst Report
+            </h5>
+            <div class="prose prose-invert prose-sm max-w-none text-green-200">
+              {{ finding.ai_analysis|safe }}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% empty %}
+        <p class="text-green-600 italic">✅ No significant findings were discovered during static analysis.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- 🚀 Dynamic Analysis -->
+    <form method="post" action="{% url 'run_dynamic_analysis' analysis.id %}" class="mt-4">
+      {% csrf_token %}
+      <button type="submit"
+        class="bg-gradient-to-r from-green-600 to-emerald-700 
+               hover:from-green-700 hover:to-emerald-800 
+               text-white font-semibold py-2 px-6 rounded-lg 
+               shadow-lg shadow-green-900/40 transform hover:scale-[1.03] active:scale-95 
+               transition duration-300 ease-in-out tracking-wide flex items-center gap-2">
+        🚀 Run Dynamic Analysis
+      </button>
+    </form>
+
+    <!-- 🌐 Dynamic Findings -->
+    <div class="border border-green-800/30 rounded-xl p-6 bg-black/60 mt-8 shadow-[0_0_25px_#00ff9980]">
+      <h3 class="text-2xl font-bold text-green-300 mb-6">🌐 Dynamic Findings</h3>
+      <div class="space-y-4">
+        {% for finding in findings %}
+        {% if finding.type == "Dynamic HTTP Request" %}
+        <div class="border border-green-700/30 rounded-lg p-4 bg-black/40">
+          <h4 class="text-sm font-semibold text-green-400 mb-2">
+            {{ finding.details.method }} → {{ finding.details.url }}
+          </h4>
+          <p class="text-xs text-green-300 mb-2">
+            Status: <span class="font-mono text-green-400">{{ finding.details.status_code|default:"N/A" }}</span>
+          </p>
+
+          {% if finding.details.headers %}
+          <div class="mt-2">
+            <h5 class="text-xs font-bold text-green-300">Sensitive Headers</h5>
+            <pre class="text-xs text-green-200 bg-black/40 border border-green-800/40 rounded p-2 overflow-auto max-h-32">{{ finding.details.headers|pprint }}</pre>
+          </div>
+          {% endif %}
+
+          {% if finding.details.body %}
+          <div class="mt-2">
+            <h5 class="text-xs font-bold text-green-300">Request Body</h5>
+            <pre class="text-xs text-green-200 bg-black/40 border border-green-800/40 rounded p-2 overflow-auto max-h-32">{{ finding.details.body }}</pre>
+          </div>
+          {% endif %}
+
+          {% if finding.details.response_snippet %}
+          <div class="mt-2">
+            <h5 class="text-xs font-bold text-green-300">Response Snippet</h5>
+            <pre class="text-xs text-green-200 bg-black/40 border border-green-800/40 rounded p-2 overflow-auto max-h-32">{{ finding.details.response_snippet }}</pre>
+          </div>
+          {% endif %}
+        </div>
+        {% endif %}
+        {% empty %}
+        <p class="text-green-600 italic">🚫 No dynamic findings yet. Run Dynamic Analysis to generate them.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🧠 كود الخلفية المتطايرة -->
+<script>
+const canvas = document.getElementById("code-bg");
+const ctx = canvas.getContext("2d");
+let w, h, particles = [];
+const charset = "01ABCDEFabcdefx.$#%&{}[]()<>?/:;";
+
+function resize() {
+  w = canvas.width = window.innerWidth;
+  h = canvas.height = window.innerHeight;
+  particles = [];
+  for (let i = 0; i < 150; i++) {
+    particles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      char: charset[Math.floor(Math.random() * charset.length)],
+      size: 12 + Math.random() * 8,
+      alpha: 0.3 + Math.random() * 0.6,
+      speed: 0.2 + Math.random() * 0.6
+    });
+  }
+}
+window.addEventListener("resize", resize);
+resize();
+
+function animate() {
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+  ctx.fillRect(0, 0, w, h);
+  ctx.font = "bold 14px monospace";
+  particles.forEach(p => {
+    ctx.fillStyle = `rgba(0,255,140,${p.alpha})`;
+    ctx.fillText(p.char, p.x, p.y);
+    p.y -= p.speed;
+    if (p.y < -20) {
+      p.y = h + 20;
+      p.x = Math.random() * w;
+      p.char = charset[Math.floor(Math.random() * charset.length)];
+    }
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.toggle-details').forEach(button => {
+    button.addEventListener('click', () => {
+      const content = button.nextElementSibling;
+      if (content) {
+        content.classList.toggle('hidden');
+        button.textContent = content.classList.contains('hidden')
+          ? 'Show Technical Details'
+          : 'Hide Technical Details';
+      }
+    });
+  });
+});
+</script>
+
+{% endblock %}

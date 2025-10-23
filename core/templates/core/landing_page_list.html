@@ -1,93 +1,242 @@
-<!-- core/templates/core/landing_page_list.html -->
 {% extends "core/base.html" %}
 
-{% block title %}Phishing - Landing Pages{% endblock %}
+{% block title %}Landing Pages — Cyber Command{% endblock %}
 
 {% block content %}
-<div class="space-y-10 animate-fadeIn">
+<div class="relative overflow-hidden">
+
+  <!-- ===== CYBER BACKGROUND ===== -->
+  <canvas id="cyber-grid" class="fixed inset-0 w-full h-full -z-50"></canvas>
+  <div class="fixed inset-0 -z-40 bg-gradient-to-b from-black/80 via-[#00110a]/90 to-[#001b13]/95"></div>
+
+  <!-- ===== MOUSE GLOW TRAIL ===== -->
+  <div id="mouse-glow" class="fixed w-24 h-24 bg-emerald-400/15 rounded-full blur-3xl -z-30 pointer-events-none"></div>
+
+  <!-- ===== PAGE CONTENT ===== -->
+  <div class="relative z-10 space-y-16 p-6 animate-fadeIn">
 
     <!-- Clone New Page Section -->
-    <div class="card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(150,0,255,0.15)] p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black">
-        <div class="relative z-10">
-            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3">
-                <span class="text-purple-400">🎭</span>
-                Clone New Landing Page
-            </h2>
-            <div class="w-40 h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-red-400 rounded-full mb-6"></div>
-            <p class="text-gray-400 mb-8 leading-relaxed">Enter a name for the template and the URL of the login page you wish to clone. The system will automatically fetch, modify, and save it.</p>
-            
-            <form method="post" class="transition duration-500">
-                {% csrf_token %}
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                    <input type="text" name="name" required 
-                           class="md:col-span-2 bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-purple-500 outline-none transition duration-300" 
-                           placeholder="Template Name (e.g., Microsoft Login)">
+    <div class="relative rounded-2xl p-10 backdrop-blur-md border border-emerald-800/20 shadow-[0_0_50px_rgba(0,255,150,0.08)] bg-[#020b08]/90 hover:shadow-[0_0_70px_rgba(0,255,150,0.15)] transition">
+      <div class="absolute inset-0 bg-gradient-to-br from-emerald-400/5 via-transparent to-transparent blur-2xl"></div>
 
-                    <input type="url" name="url_to_clone" required 
-                           class="md:col-span-2 bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-purple-600 focus:border-purple-500 outline-none transition duration-300"
-                           placeholder="URL to Clone (e.g., https://login.live.com)">
+      <div class="relative z-10">
+        <h2 class="text-3xl font-extrabold text-white mb-4 flex items-center gap-3 tracking-wide">
+          <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,180,0.7)]">🎭</span>
+          Clone New Landing Page
+        </h2>
+        <div class="w-52 h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 rounded-full mb-6 shadow-[0_0_14px_rgba(0,255,200,0.4)]"></div>
 
-                    <button type="submit" 
-                            class="md:col-span-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg shadow-purple-900/40 transform hover:scale-105 active:scale-95 transition duration-300 ease-in-out">
-                        Clone Page
-                    </button>
-                </div>
-            </form>
-        </div>
+        <p class="text-gray-400 mb-8 leading-relaxed">Enter a name for the template and the URL of the login page you wish to clone. The system will automatically fetch, modify, and save it.</p>
+
+        <form method="post" class="space-y-6">
+          {% csrf_token %}
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
+            <input type="text" name="name" required 
+                   class="input-glow md:col-span-2 bg-[#071312] border border-emerald-800/40 rounded-xl p-3 text-emerald-100 placeholder-emerald-500 outline-none transition" 
+                   placeholder="Template Name (e.g., Microsoft Login)">
+
+            <input type="url" name="url_to_clone" required 
+                   class="input-glow md:col-span-2 bg-[#071312] border border-emerald-800/40 rounded-xl p-3 text-emerald-100 placeholder-emerald-500 outline-none transition"
+                   placeholder="URL to Clone (e.g., https://login.live.com)">
+
+            <button type="submit" 
+                    class="btn-primary md:col-span-1 px-8 py-3 rounded-xl font-semibold tracking-wide">
+              ⚡ Clone Page
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Existing Pages List Section -->
-    <div class="card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(150,0,255,0.12)] p-6 bg-gradient-to-br from-gray-900 via-black to-gray-950">
-        <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-            <span class="text-purple-400">📚</span>
-            Existing Landing Pages
-        </h3>
-        
-        <div class="overflow-hidden border border-gray-800 rounded-lg shadow-inner shadow-black/40">
-            <table class="w-full text-sm text-left text-gray-300">
-                <thead class="bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-xs text-gray-400 uppercase tracking-wider border-b border-gray-700">
-                    <tr>
-                        <th class="px-4 py-3">Template Name</th>
-                        <th class="px-4 py-3">Created At</th>
-                        <th class="px-4 py-3 text-center">Status</th>
-                        <th class="px-4 py-3 text-center">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-800">
-                    {% for page in pages %}
-                    <tr class="hover:bg-gradient-to-r hover:from-gray-800/60 hover:via-gray-900 hover:to-gray-800/60 transition-all duration-300">
-                        <td class="px-4 py-3 font-semibold text-gray-200">{{ page.name }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-gray-400">{{ page.created_at|date:"Y-m-d H:i" }}</td>
-                        <td class="px-4 py-3 text-center">
-                            {% if "Cloning in progress..." in page.html_content or "Failed to clone:" in page.html_content %}
-                                {% if "Failed" in page.html_content %}
-                                    <span class="font-semibold px-2.5 py-1 rounded-full text-xs bg-rose-500/20 text-rose-300 border border-rose-400/30">
-                                        Failed
-                                    </span>
-                                {% else %}
-                                    <span class="font-semibold px-2.5 py-1 rounded-full text-xs bg-amber-500/20 text-amber-300 border border-amber-400/30 animate-pulse">
-                                        Cloning...
-                                    </span>
-                                {% endif %}
-                            {% else %}
-                                <span class="font-semibold px-2.5 py-1 rounded-full text-xs bg-teal-500/20 text-teal-300 border border-teal-400/30">
-                                    Ready
-                                </span>
-                            {% endif %}
-                        </td>
-                        <td class="px-4 py-3 text-center">
-                            <!-- You can add action buttons here in the future, like 'Preview' or 'Delete' -->
-                            <a href="#" class="text-indigo-400 hover:text-indigo-300 text-xs">Preview</a>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center py-6 text-gray-600 italic">No landing pages have been cloned yet.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <div class="card border border-gray-800/60 rounded-2xl shadow-[0_0_35px_rgba(0,255,150,0.18)] p-8 bg-[#020b08]/70 backdrop-blur-xl relative overflow-hidden">
+
+      <!-- Subtle grid lines -->
+      <div class="absolute inset-0 opacity-[0.05] bg-[linear-gradient(90deg,#00ff99_1px,transparent_1px),linear-gradient(180deg,#00ff99_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+
+      <h3 class="text-2xl font-bold text-white mb-8 flex items-center gap-3 relative z-10">
+          <span class="text-emerald-400 animate-pulse">📚</span>
+          Existing Landing Pages
+      </h3>
+
+      <!-- Search + Filters Bar -->
+      <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+          <div class="flex items-center gap-3 w-full md:w-1/3">
+              <input id="searchInput" type="text" placeholder="🔍 Search by name..." 
+                     class="w-full bg-[#071312]/70 border border-emerald-800/40 rounded-lg p-3 text-emerald-100 placeholder-emerald-500 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-300 outline-none transition duration-300" />
+          </div>
+          <div class="flex items-center gap-3">
+              <select id="statusFilter" 
+                      class="bg-[#071312]/70 border border-emerald-800/40 rounded-lg p-3 text-emerald-100 focus:ring-2 focus:ring-emerald-400 focus:border-emerald-300 outline-none">
+                  <option value="">All Status</option>
+                  <option value="Ready">Ready</option>
+                  <option value="Cloning">Cloning...</option>
+                  <option value="Failed">Failed</option>
+              </select>
+              <span id="rowCount" class="text-emerald-300 text-sm italic">Total: {{ pages|length }}</span>
+          </div>
+      </div>
+
+      <div class="relative z-10 overflow-hidden border border-emerald-800/40 rounded-xl shadow-inner shadow-black/40 backdrop-blur-md">
+          <table class="w-full text-sm text-left text-emerald-100 border-collapse">
+              <thead class="bg-[#071312]/80 text-xs text-emerald-400 uppercase tracking-wider border-b border-emerald-700/40">
+                  <tr>
+                      <th class="px-4 py-3">Template Name</th>
+                      <th class="px-4 py-3">Created At</th>
+                      <th class="px-4 py-3 text-center">Status</th>
+                      <th class="px-4 py-3 text-center">Actions</th>
+                  </tr>
+              </thead>
+              <tbody id="pagesTable" class="divide-y divide-emerald-800/30">
+                  {% for page in pages %}
+                  <tr class="transition-all duration-300 hover:bg-gradient-to-r hover:from-emerald-900/20 hover:via-emerald-700/10 hover:to-emerald-900/20 hover:shadow-[0_0_20px_rgba(0,255,150,0.25)] group">
+                      <td class="px-4 py-3 font-semibold text-emerald-200">{{ page.name }}</td>
+                      <td class="px-4 py-3 whitespace-nowrap text-emerald-400">{{ page.created_at|date:"Y-m-d H:i" }}</td>
+                      <td class="px-4 py-3 text-center">
+                          {% if "Cloning in progress..." in page.html_content or "Failed to clone:" in page.html_content %}
+                              {% if "Failed" in page.html_content %}
+                                  <span class="relative font-semibold px-3 py-1.5 rounded-full text-xs bg-rose-600/20 text-rose-300 border border-rose-500/30 overflow-hidden">
+                                      <span class="absolute inset-0 bg-rose-500/20 animate-pulse blur-md"></span>
+                                      <span class="relative z-10">Failed</span>
+                                  </span>
+                              {% else %}
+                                  <span class="relative font-semibold px-3 py-1.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 animate-pulse overflow-hidden">
+                                      <span class="absolute inset-0 bg-emerald-400/20 animate-[pulse_3s_ease_infinite] blur-sm"></span>
+                                      <span class="relative z-10">Cloning...</span>
+                                  </span>
+                              {% endif %}
+                          {% else %}
+                              <span class="relative font-semibold px-3 py-1.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 overflow-hidden">
+                                  <span class="absolute inset-0 bg-emerald-400/20 animate-[pulse_3s_ease_infinite] blur-sm"></span>
+                                  <span class="relative z-10">Ready</span>
+                              </span>
+                          {% endif %}
+                      </td>
+                      <td class="px-4 py-3 text-center">
+                          <a href="#" class="text-emerald-400 hover:text-emerald-200 text-xs font-medium transition-all duration-300">Preview</a>
+                      </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                      <td colspan="4" class="text-center py-6 text-emerald-600 italic">No landing pages have been cloned yet.</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+      </div>
     </div>
+
+  </div>
+
+  <!-- ===== BACKGROUND ANIMATION ===== -->
+  <script>
+  (() => {
+    const canvas = document.getElementById('cyber-grid');
+    const ctx = canvas.getContext('2d');
+    let W, H, t = 0;
+
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, W, H);
+      const gridSize = 28;
+      ctx.strokeStyle = 'rgba(0, 255, 149, 0.45)';
+      ctx.lineWidth = 1;
+
+      for (let y = 0; y < H; y += gridSize) {
+        ctx.beginPath();
+        for (let x = 0; x < W; x += gridSize) {
+          const wave = Math.sin((x + t) * 0.012) * 8 + Math.cos((y + t) * 0.018) * 8;
+          ctx.lineTo(x, y + wave);
+        }
+        ctx.stroke();
+      }
+
+      for (let x = 0; x < W; x += gridSize) {
+        ctx.beginPath();
+        for (let y = 0; y < H; y += gridSize) {
+          const wave = Math.sin((y + t) * 0.009) * 8 + Math.cos((x + t) * 0.013) * 8;
+          ctx.lineTo(x + wave, y);
+        }
+        ctx.stroke();
+      }
+
+      // Floating particles
+      for (let i = 0; i < 60; i++) {
+        const px = (Math.sin(t / 15 + i) * W) / 2 + W / 2;
+        const py = (Math.cos(t / 20 + i) * H) / 2 + H / 2;
+        ctx.fillStyle = `rgba(0,255,180,${Math.random() * 0.3})`;
+        ctx.fillRect(px, py, 2, 2);
+      }
+
+      t += 0.6;
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    // Mouse glow trail
+    const glow = document.getElementById("mouse-glow");
+    document.addEventListener("mousemove", (e) => {
+      glow.style.left = e.clientX - 50 + "px";
+      glow.style.top = e.clientY - 50 + "px";
+    });
+  })();
+
+  // ===== Table Search & Filter =====
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    const statusFilter = document.getElementById('statusFilter');
+    const rows = document.querySelectorAll('#pagesTable tr');
+    const rowCount = document.getElementById('rowCount');
+
+    function updateTable() {
+        const query = searchInput.value.toLowerCase();
+        const filter = statusFilter.value;
+        let visible = 0;
+
+        rows.forEach(row => {
+            const name = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+            const status = row.querySelector('td:nth-child(3) span span:last-child')?.textContent || '';
+
+            const matchesSearch = name.includes(query);
+            const matchesFilter = !filter || status.includes(filter);
+
+            if (matchesSearch && matchesFilter) {
+                row.style.display = '';
+                visible++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        rowCount.textContent = `Total: ${visible}`;
+    }
+
+    searchInput.addEventListener('input', updateTable);
+    statusFilter.addEventListener('change', updateTable);
+  });
+  </script>
+
+  <!-- ===== STYLE ENHANCEMENTS ===== -->
+  <style>
+    .input-glow { transition: all .25s ease; }
+    .input-glow:hover { border-color: rgba(0,255,150,0.5); box-shadow: 0 0 15px rgba(0,255,180,0.08); transform: translateY(-2px); }
+    .input-glow:focus { border-color: rgba(0,255,180,0.9); box-shadow: 0 0 30px rgba(0,255,180,0.12); transform: translateY(-2px); }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #00ff99, #00ffd5, #00ff99);
+      background-size: 200% 100%;
+      color: #00110a;
+      font-weight: bold;
+      box-shadow: 0 0 25px rgba(0,255,180,0.15);
+      transition: all .3s ease;
+      animation: gradientShift 4s linear infinite;
+    }
+    .btn-primary:hover { box-shadow: 0 0 45px rgba(0,255,200,0.25); transform: scale(1.03); }
+    @keyframes gradientShift { 0% { background-position: 0 0; } 100% { background-position: 200% 0; } }
+  </style>
+
 </div>
 {% endblock %}

@@ -4,12 +4,8 @@ djangorestframework
 django-filter
 djangorestframework-api-key
 
-# Celery and Redis (Compatible versions)
+# Celery and Redis (Latest working versions)
 celery
-billiard
-kombu
-vine
-importlib-metadata
 redis<5.0.0
 
 # External Tools Connectors
@@ -21,7 +17,11 @@ Jinja2
 colorama
 pyparsing
 pymetasploit3
-
-# Database (for production)
-psycopg2-binary
+pexpect
 lxml
+netaddr
+google-generativeai
+
+# Database
+psycopg2-binary
+django-extensions

@@ -11,6 +11,9 @@ urlpatterns = [
     path('', include('core.urls')),  
     path('lab/', include('vulnerable_app.urls')),
     path('network/', include('network_mapper.urls')),
+    path('apk/', include('apk_analyzer.urls')), 
+    path('cloud/', include('cloud_scanner.urls')), # <-- إضافة جديدة
+
 ]
 
 if settings.DEBUG:

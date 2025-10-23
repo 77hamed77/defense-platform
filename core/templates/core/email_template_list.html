@@ -1,78 +1,83 @@
 <!-- core/templates/core/email_template_list.html -->
 
 {% extends "core/base.html" %}
-
-{% block title %}Phishing - Email Templates{% endblock %}
+{% block title %}Email Templates — Cyber Defense{% endblock %}
 
 {% block content %}
-<div class="space-y-12 animate-fadeIn">
+<div class="relative overflow-hidden">
 
-    <!-- Create New Template Section -->
-    <div class="relative card border border-gray-800 rounded-2xl shadow-[0_0_40px_rgba(0,255,200,0.15)] 
-                p-10 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden 
-                transition duration-300 hover:shadow-[0_0_60px_rgba(0,255,200,0.25)]">
+  <!-- ===================== BACKGROUND LAYERS (ALL CANVASES ARE BEHIND THE UI) ===================== -->
+  <!-- matrix rain (deepest) -->
+  <canvas id="canvas-matrix" class="fixed inset-0 w-full h-full -z-60"></canvas>
+  <!-- cyber waves (mid) -->
+  <canvas id="canvas-waves" class="fixed inset-0 w-full h-full -z-55"></canvas>
+  <!-- neural mesh (top of background, under UI) -->
+  <canvas id="canvas-mesh" class="fixed inset-0 w-full h-full -z-50"></canvas>
 
-        <!-- Glow background -->
-        <div class="absolute inset-0 bg-gradient-to-tr from-green-700/15 via-transparent to-transparent blur-3xl"></div>
+  <!-- overlay to dim background under cards so the characters stay behind cards -->
+  <div class="fixed inset-0 -z-45 pointer-events-none"
+       style="background: linear-gradient(180deg, rgba(0,6,3,0.45), rgba(1,10,8,0.82));"></div>
+
+  <!-- ===================== CONTENT (above background) ===================== -->
+  <div class="relative z-10 p-6 space-y-16 animate-fadeIn">
+
+    <!-- Create New Template Card -->
+    <div class="relative rounded-2xl p-10 transition-transform transform hover:-translate-y-1
+                shadow-[0_10px_40px_rgba(0,255,170,0.09)] hover:shadow-[0_20px_60px_rgba(0,255,200,0.16)] overflow-hidden"
+         style="background: rgba(2,6,23,0.96); border: 1px solid rgba(6,80,50,0.14);">
+        <!-- soft neon overlay for glow edges -->
+        <div class="absolute inset-0 pointer-events-none"
+             style="background: linear-gradient(135deg, rgba(0,255,150,0.03), transparent 35%); filter: blur(16px);"></div>
 
         <div class="relative z-10">
-            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3 tracking-wide">
-                <span class="text-green-400 drop-shadow-[0_0_6px_rgba(0,255,150,0.7)]">✉️</span>
-                Create New Email Template
+            <h2 id="page-title" class="text-3xl font-extrabold text-white mb-4 flex items-center gap-3 tracking-wide">
+                <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,200,0.6)]">✉️</span>
+                <span class="glow-loop">Create New Email Template</span>
             </h2>
-            <div class="w-56 h-1.5 bg-gradient-to-r from-green-500 via-cyan-500 to-teal-400 
-                        rounded-full mb-8 shadow-[0_0_12px_rgba(0,255,200,0.5)]"></div>
-            
-            <p class="text-gray-400 mb-8 leading-relaxed border-l-4 border-green-500/50 pl-4 italic">
-                Use placeholders <span class="text-green-400 font-mono">{"{{phishing_link}}"}</span> for the phishing link and 
-                <span class="text-green-400 font-mono">{"{{target_name}}"}</span> for the recipient's name.
+
+            <div class="w-52 h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 rounded-full mb-6
+                        shadow-[0_0_12px_rgba(0,255,200,0.35)]"></div>
+
+            <p class="text-gray-400 mb-8 leading-relaxed border-l-4 border-emerald-500/40 pl-4 italic">
+                Use placeholders <span class="text-emerald-400 font-mono">{"{{phishing_link}}"}</span>
+                and <span class="text-emerald-400 font-mono">{"{{target_name}}"}</span>.
             </p>
-            
-            <form method="post" class="space-y-8">
+
+            <form method="post" class="space-y-6">
                 {% csrf_token %}
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-300 mb-2">Template Name</label>
-                        <input type="text" name="name" id="name" required
-                               class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white placeholder-gray-500 
-                                      focus:ring-2 focus:ring-green-500 focus:border-green-400 outline-none transition duration-200 
-                                      hover:border-green-400/60 hover:shadow-[0_0_15px_rgba(0,255,200,0.3)]"
-                               placeholder="e.g., Urgent Password Reset">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Template Name</label>
+                        <input type="text" name="name" required
+                            class="input-glow w-full rounded-xl p-3.5 bg-[#071014] border border-emerald-800/30 text-emerald-100 placeholder-emerald-500 outline-none transition"
+                            placeholder="e.g., Urgent Password Reset">
                     </div>
+
                     <div>
-                        <label for="subject" class="block text-sm font-medium text-gray-300 mb-2">Email Subject</label>
-                        <input type="text" name="subject" id="subject" required
-                               class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white placeholder-gray-500 
-                                      focus:ring-2 focus:ring-green-500 focus:border-green-400 outline-none transition duration-200 
-                                      hover:border-green-400/60 hover:shadow-[0_0_15px_rgba(0,255,200,0.3)]"
-                               placeholder="Action Required: Update Your Account">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Email Subject</label>
+                        <input type="text" name="subject" required
+                            class="input-glow w-full rounded-xl p-3.5 bg-[#071014] border border-emerald-800/30 text-emerald-100 placeholder-emerald-500 outline-none transition"
+                            placeholder="Action Required: Update Your Account">
                     </div>
                 </div>
 
                 <div>
-                    <label for="body" class="block text-sm font-medium text-gray-300 mb-2">Email Body (HTML)</label>
-                    <textarea name="body" id="body" rows="12" required
-                              class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white font-mono text-sm 
-                                     placeholder-gray-600 focus:ring-2 focus:ring-green-500 focus:border-green-400 outline-none 
-                                     hover:border-green-400/60 hover:shadow-[0_0_15px_rgba(0,255,200,0.3)] transition duration-200"
-                              placeholder="<p>Hello {{target_name}},</p><p>Please click <a href='{{phishing_link}}'>here</a> to update your password.</p>"></textarea>
-                </div>
-                
-                <div>
-                    <label for="telegram_message" class="block text-sm font-medium text-gray-300 mb-2">Telegram Message (Plain Text)</label>
-                    <textarea name="telegram_message" id="telegram_message" rows="5"
-                              class="w-full bg-gray-900/80 border border-gray-700 rounded-xl p-3.5 text-white font-mono text-sm 
-                                     placeholder-gray-600 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-400 outline-none 
-                                     hover:border-cyan-400/60 hover:shadow-[0_0_15px_rgba(0,255,255,0.3)] transition duration-200"
-                              placeholder="Hello {{target_name}}, please review: {{phishing_link}}"></textarea>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Email Body (HTML)</label>
+                    <textarea name="body" rows="10" required
+                        class="input-glow font-mono w-full rounded-xl p-3.5 bg-[#071014] border border-emerald-800/30 text-emerald-100 placeholder-emerald-500 outline-none transition"
+                        placeholder="<p>Hello {{target_name}},</p><p>Click <a href='{{phishing_link}}'>here</a> to verify your account.</p>"></textarea>
                 </div>
 
-                <div class="flex justify-end pt-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Telegram Message (Plain Text)</label>
+                    <textarea name="telegram_message" rows="5"
+                        class="input-glow font-mono w-full rounded-xl p-3.5 bg-[#071014] border border-emerald-800/30 text-emerald-100 placeholder-emerald-500 outline-none transition"
+                        placeholder="Hello {{target_name}}, please check this link: {{phishing_link}}"></textarea>
+                </div>
+
+                <div class="flex justify-end">
                     <button type="submit"
-                            class="bg-gradient-to-r from-green-600 via-teal-600 to-cyan-600 
-                                   hover:from-green-500 hover:via-teal-500 hover:to-cyan-500 text-white font-semibold py-3 px-8 
-                                   rounded-xl shadow-lg shadow-green-900/50 transform hover:scale-[1.04] active:scale-95 
-                                   transition duration-300 ease-in-out tracking-wide">
+                        class="btn-primary px-8 py-3 rounded-xl font-semibold shadow-lg transform hover:scale-[1.03] active:scale-95 transition">
                         💾 Save Template
                     </button>
                 </div>
@@ -80,36 +85,35 @@
         </div>
     </div>
 
-    <!-- Existing Templates Section -->
-    <div class="relative card border border-gray-800 rounded-2xl p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden 
-                shadow-[0_0_35px_rgba(0,255,200,0.1)] transition duration-300 hover:shadow-[0_0_50px_rgba(0,255,255,0.2)]">
-        <div class="absolute inset-0 bg-gradient-to-tl from-cyan-700/10 via-transparent to-transparent blur-3xl"></div>
-
+    <!-- Existing Templates Card -->
+    <div class="relative rounded-2xl p-8 transition-transform transform hover:-translate-y-1
+                shadow-[0_10px_40px_rgba(0,255,170,0.06)] hover:shadow-[0_20px_60px_rgba(0,255,200,0.14)] overflow-hidden"
+         style="background: rgba(2,6,23,0.96); border: 1px solid rgba(6,80,50,0.14);">
         <div class="relative z-10">
             <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3 tracking-wide">
-                <span class="text-cyan-400 drop-shadow-[0_0_6px_rgba(0,255,255,0.6)]">📚</span>
+                <span class="text-cyan-400 drop-shadow-[0_0_8px_rgba(0,255,255,0.6)]">📚</span>
                 Existing Templates
             </h3>
 
-            <div class="overflow-hidden border border-gray-800/70 rounded-xl backdrop-blur-sm">
+            <div class="overflow-hidden border border-emerald-900/20 rounded-xl backdrop-blur-md">
                 <table class="w-full text-sm text-left text-gray-300">
-                    <thead class="bg-gray-800/90 text-xs text-gray-400 uppercase tracking-wider">
-                        <tr class="divide-x divide-gray-700">
+                    <thead class="bg-[#071014] text-xs text-gray-400 uppercase tracking-wider">
+                        <tr class="divide-x divide-emerald-900/20">
                             <th class="px-6 py-3">Template Name</th>
                             <th class="px-6 py-3">Subject</th>
                             <th class="px-6 py-3">Created At</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-800/70">
+                    <tbody class="divide-y divide-emerald-900/20">
                         {% for template in templates %}
-                        <tr class="hover:bg-gray-800/50 hover:shadow-[0_0_12px_rgba(0,255,255,0.25)] transition duration-200 cursor-pointer">
-                            <td class="px-6 py-3 font-semibold text-gray-200">{{ template.name }}</td>
+                        <tr class="template-row hover:bg-emerald-900/6 transition-all duration-200 cursor-pointer">
+                            <td class="px-6 py-3 font-semibold text-gray-100">{{ template.name }}</td>
                             <td class="px-6 py-3 text-gray-300">{{ template.subject|truncatechars:60 }}</td>
                             <td class="px-6 py-3 whitespace-nowrap text-gray-400">{{ template.created_at|date:"Y-m-d H:i" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="3" class="text-center py-10 text-gray-600 italic">No email templates created yet.</td>
+                            <td colspan="3" class="text-center py-10 text-emerald-600 italic">No email templates created yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -118,5 +122,233 @@
         </div>
     </div>
 
+  </div> <!-- /content -->
+
+  <!-- ===================== SCRIPTS: Matrix + Waves + Mesh ===================== -->
+  <script>
+  (function () {
+    // Setup canvases & contexts
+    const cMatrix = document.getElementById('canvas-matrix');
+    const cWaves  = document.getElementById('canvas-waves');
+    const cMesh   = document.getElementById('canvas-mesh');
+
+    const ctxM = cMatrix.getContext('2d');
+    const ctxW = cWaves.getContext('2d');
+    const ctxX = cMesh.getContext('2d');
+
+    // sizing
+    let W = innerWidth, H = innerHeight;
+    function resizeAll() {
+      W = cMatrix.width = cWaves.width = cMesh.width = innerWidth;
+      H = cMatrix.height = cWaves.height = cMesh.height = innerHeight;
+      // matrix
+      fontSize = Math.max(12, Math.floor(W / 80));
+      columns = Math.floor(W / fontSize);
+      drops = new Array(columns).fill(1);
+      ctxM.font = fontSize + 'px monospace';
+      // waves
+      wavePoints = Math.ceil(W / 10);
+      // mesh
+      initNodes();
+    }
+    window.addEventListener('resize', resizeAll);
+
+    /* ---------------- Matrix Rain ---------------- */
+    let fontSize = Math.max(12, Math.floor(W / 80));
+    let columns = Math.floor(W / fontSize);
+    let drops = new Array(columns).fill(1);
+    const chars = '01';
+    function drawMatrix() {
+      // darken slightly to create trailing effect
+      ctxM.fillStyle = 'rgba(0,0,0,0.12)';
+      ctxM.fillRect(0,0,W,H);
+
+      ctxM.fillStyle = '#00ff99';
+      ctxM.shadowColor = '#00ff99';
+      ctxM.shadowBlur = 6;
+      ctxM.font = fontSize + 'px monospace';
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.random() > 0.5 ? 0 : 1];
+        const x = i * fontSize;
+        const y = drops[i] * fontSize;
+        ctxM.fillText(text, x, y);
+        if (y > H && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+
+    /* ---------------- Cyber Waves ---------------- */
+    let t = 0;
+    let wavePoints = Math.ceil(W / 10);
+    function drawWaves() {
+      ctxW.clearRect(0,0,W,H);
+      // soft gradient overlay lines
+      for (let layer = 0; layer < 3; layer++) {
+        ctxW.beginPath();
+        ctxW.lineWidth = 1.2 + layer * 0.6;
+        ctxW.strokeStyle = `rgba(0,255,160,${0.04 + layer*0.02})`;
+        let amplitude = 30 + layer*12;
+        let speed = 0.002 + layer*0.0009;
+        for (let x = 0; x <= W; x += 10) {
+          const y = H*0.55 + Math.sin(x*0.004 + t*speed + layer) * amplitude;
+          if (x === 0) ctxW.moveTo(x,y); else ctxW.lineTo(x,y);
+        }
+        ctxW.stroke();
+      }
+      t += 1;
+      // subtle particles
+      // we draw faint circles to give depth
+      for (let i = 0; i < 40; i++) {
+        ctxW.beginPath();
+        const px = (Math.sin(t/60 + i) * 0.5 + 0.5) * W;
+        const py = (Math.cos(t/80 + i*1.7) * 0.5 + 0.5) * H;
+        ctxW.fillStyle = 'rgba(0,255,160,0.03)';
+        ctxW.arc(px, py, 2, 0, Math.PI*2);
+        ctxW.fill();
+      }
+    }
+
+    /* ---------------- Neural Mesh (nodes + links) ---------------- */
+    let nodes = [];
+    const NODE_COUNT = Math.max(12, Math.floor(W/140));
+    function initNodes() {
+      nodes = [];
+      const count = Math.max(12, Math.floor(W/140));
+      for (let i = 0; i < count; i++) {
+        nodes.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random()-0.5) * 0.2,
+          vy: (Math.random()-0.5) * 0.2,
+          r: 1.2 + Math.random()*2
+        });
+      }
+    }
+
+    function drawMesh() {
+      ctxX.clearRect(0,0,W,H);
+      // update nodes
+      for (const n of nodes) {
+        n.x += n.vx;
+        n.y += n.vy;
+        if (n.x < 0 || n.x > W) n.vx *= -1;
+        if (n.y < 0 || n.y > H) n.vy *= -1;
+      }
+
+      // draw links between close nodes
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i+1; j < nodes.length; j++) {
+          const a = nodes[i], b = nodes[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const d = Math.sqrt(dx*dx + dy*dy);
+          if (d < 180) {
+            const alpha = (1 - d/180) * 0.12;
+            ctxX.beginPath();
+            ctxX.strokeStyle = `rgba(0,255,160,${alpha})`;
+            ctxX.lineWidth = 0.9;
+            ctxX.moveTo(a.x, a.y);
+            ctxX.lineTo(b.x, b.y);
+            ctxX.stroke();
+          }
+        }
+      }
+
+      // draw nodes (glow)
+      for (const n of nodes) {
+        ctxX.beginPath();
+        ctxX.fillStyle = 'rgba(0,255,160,0.06)';
+        ctxX.arc(n.x, n.y, n.r*3.5, 0, Math.PI*2);
+        ctxX.fill();
+
+        ctxX.beginPath();
+        ctxX.fillStyle = 'rgba(0,255,160,0.8)';
+        ctxX.arc(n.x, n.y, n.r, 0, Math.PI*2);
+        ctxX.fill();
+      }
+    }
+
+    /* --------------- Animation Loop --------------- */
+    function loop() {
+      drawMatrix();
+      drawWaves();
+      drawMesh();
+      requestAnimationFrame(loop);
+    }
+
+    // initial resize & start
+    resizeAll();
+    loop();
+
+    // handle reduced motion
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // stop animations if user prefers reduced motion
+      // clear canvases to static faint background
+      ctxM.clearRect(0,0,W,H);
+      ctxW.clearRect(0,0,W,H);
+      ctxX.clearRect(0,0,W,H);
+    }
+  })();
+  </script>
+
+  <!-- ===================== STYLES: inputs, buttons, glow loop ===================== -->
+  <style>
+    /* Primary button */
+    .btn-primary {
+      background-image: linear-gradient(90deg, #10b981 0%, #06b6d4 50%, #06b6d4 100%);
+      color: #00110b;
+      box-shadow: 0 8px 30px rgba(6, 200, 150, 0.16);
+      border: 1px solid rgba(6,80,50,0.14);
+    }
+    .btn-primary:hover { box-shadow: 0 18px 60px rgba(6, 220, 170, 0.20); }
+
+    /* Input glow on hover/focus */
+    .input-glow {
+      transition: box-shadow .18s ease, transform .12s ease, border-color .12s ease;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.45) inset;
+      border-radius: 0.75rem;
+    }
+    .input-glow:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,255,160,0.035), 0 6px 22px rgba(0,0,0,0.45) inset;
+      border-color: rgba(16,185,129,0.45);
+    }
+    .input-glow:focus {
+      outline: none;
+      box-shadow: 0 18px 60px rgba(0,255,160,0.09), 0 6px 22px rgba(0,0,0,0.45) inset;
+      border-color: rgba(16,185,129,0.9);
+      transform: translateY(-2px);
+    }
+
+    /* Title glow loop */
+    .glow-loop { position: relative; display: inline-block; padding-right: .2rem; }
+    .glow-loop::after {
+      content: '';
+      position: absolute;
+      inset: -6px -8px -8px -8px;
+      border-radius: 10px;
+      background: linear-gradient(90deg, rgba(0,255,150,0.06), rgba(6,200,220,0.03), rgba(0,255,150,0.06));
+      filter: blur(10px);
+      opacity: 0.7;
+      z-index: -1;
+      animation: glowMove 3.6s linear infinite;
+    }
+    @keyframes glowMove {
+      0% { transform: translateX(-12%); opacity: .45; }
+      50% { transform: translateX(12%); opacity: .82; }
+      100% { transform: translateX(-12%); opacity: .45; }
+    }
+
+    /* Table row hover polish */
+    .template-row:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0,255,160,0.04);
+    }
+
+    /* Accessibility: stop heavy motion if user requests reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .glow-loop::after { animation: none; }
+      * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    }
+  </style>
 </div>
 {% endblock %}

@@ -25,7 +25,9 @@ from django.utils import timezone
 import pexpect # <-- استيراد المكتبة الجديدة
 from .models import Scan, Tool, Vulnerability
 from network_mapper.models import NetworkDevice
-
+import hashlib
+import xml.etree.ElementTree as ET
+from cloud_scanner.models import AWSEnvironment, CloudScan, CloudFinding
 
 @shared_task
 def execute_scan_task(scan_id, target_for_tool): # <-- تم إضافة الوسيط الجديد
@@ -354,7 +356,7 @@ def analyze_vulnerability_with_ai(vuln_id):
 
     # تكوين Gemini
     genai.configure(api_key=settings.GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-pro')
 
     # تحضير السؤال (Prompt)
     # سنعطي النموذج كل المعلومات التي لدينا عن الثغرة
@@ -586,7 +588,7 @@ def run_eyewitness_on_scan(scan_id):
             f.write(f"https://{target}\n")
 
     # 3. إعداد مسارات Eyewitness
-    eyewitness_script_path = "/home/ahmad/EyeWitness/Python/EyeWitness.py"
+    eyewitness_script_path = "/home/hamid/EyeWitness/Python/EyeWitness.py"
     output_dir_temp = f"/tmp/eyewitness_report_{scan.id}"
     
     command = [
@@ -897,15 +899,16 @@ def run_routersploit_audit(device_id):
         status='RUNNING'
     )
 
+
     log_file_path = f"/tmp/routersploit_log_{scan.id}.txt"
     log_file = open(log_file_path, "w")
     
     # المسار إلى سكربت RouterSploit
-    rsf_script = "/home/ahmad/routersploit/rsf.py"
+    rsf_script = "/home/hamid/routersploit/rsf.py"
     
     try:
         # بدء عملية RouterSploit
- # --- تعديل هنا: استخدم python3 بشكل صريح ---
+# --- تعديل هنا: استخدم python3 بشكل صريح ---
         child = pexpect.spawn(f"python3 {rsf_script}", logfile=log_file, encoding='utf-8', timeout=900)
         # 1. انتظر موجه الأوامر الأولي
         child.expect(r'rsf >', timeout=600) # زيادة المهلة الأولية
@@ -954,3 +957,318 @@ def run_routersploit_audit(device_id):
             os.remove(log_file_path)
             
     return result_message
+
+
+# --- إضافة جديدة: مهمة تحليل APK ---
+@shared_task
+def analyze_apk_task(analysis_id):
+    try:
+        # نحن نستورد النماذج هنا لتجنب مشاكل الاستيراد الدائري
+        from apk_analyzer.models import APKAnalysis, APKFinding
+        analysis = APKAnalysis.objects.get(id=analysis_id)
+    except APKAnalysis.DoesNotExist:
+        return f"APKAnalysis with id {analysis_id} not found."
+
+    analysis.status = 'ANALYZING'
+    analysis.save()
+
+    apk_path = analysis.apk_file.path
+    output_dir = f"/tmp/apk_analysis_{analysis.id}"
+    
+    try:
+        # --- المرحلة 1: تفكيك الـ APK باستخدام apktool ---
+        apktool_cmd = f"apktool d {apk_path} -o {output_dir} -f"
+        subprocess.run(apktool_cmd, shell=True, check=True, timeout=300)
+        
+        # --- المرحلة 2: تحليل AndroidManifest.xml ---
+        manifest_path = os.path.join(output_dir, 'AndroidManifest.xml')
+        if os.path.exists(manifest_path):
+            parse_android_manifest(analysis, manifest_path)
+        
+        # --- المرحلة 3: فحص الأسرار باستخدام Trufflehog ---
+        trufflehog_tool = Tool.objects.get(name='Trufflehog')
+        trufflehog_output = f"/tmp/trufflehog_report_{analysis.id}.jsonl"
+        # تعديل الأمر ليفحص مجلدًا بدلاً من git
+        trufflehog_cmd = f"/home/hamid/go/bin/trufflehog filesystem {output_dir} --json --no-update > {trufflehog_output}"
+        subprocess.run(trufflehog_cmd, shell=True, check=False) # check=False لأن Trufflehog قد يرجع 1
+        
+        # تحليل نتائج Trufflehog
+        parse_trufflehog_json_for_apk(analysis, trufflehog_output)
+        
+        analysis.status = 'COMPLETED'
+        result_message = "APK analysis completed successfully."
+
+    except Exception as e:
+        analysis.status = 'FAILED'
+        result_message = f"An error occurred during APK analysis: {str(e)}"
+        print(result_message)
+    
+    finally:
+        analysis.completed_at = timezone.now()
+        analysis.save()
+        # تنظيف المجلدات المؤقتة
+        if os.path.isdir(output_dir):
+            shutil.rmtree(output_dir)
+        if os.path.exists(trufflehog_output):
+            os.remove(trufflehog_output)
+
+    return result_message
+
+# --- دوال مساعدة لمهمة تحليل APK ---
+def parse_android_manifest(analysis, manifest_path):
+    from apk_analyzer.models import APKFinding
+    tree = ET.parse(manifest_path)
+    root = tree.getroot()
+    ns = {'android': 'http://schemas.android.com/apk/res/android'}
+    
+    # استخراج اسم الحزمة والإصدار
+    analysis.package_name = root.get('package')
+    analysis.version_name = root.get('versionName', 'N/A')
+    analysis.save()
+    
+    # البحث عن الأذونات الخطيرة
+    for perm in root.findall('uses-permission'):
+        perm_name = perm.get(f"{{{ns['android']}}}name")
+        if perm_name and 'SEND_SMS' in perm_name:
+            APKFinding.objects.create(analysis=analysis, type="Dangerous Permission", description=f"App can send SMS messages: {perm_name}", severity="HIGH")
+
+    # البحث عن المكونات المكشوفة
+    app = root.find('application')
+    if app is not None:
+        for comp_type in ['activity', 'service', 'receiver', 'provider']:
+            for comp in app.findall(comp_type):
+                if comp.get(f"{{{ns['android']}}}exported") == 'true':
+                    comp_name = comp.get(f"{{{ns['android']}}}name")
+                    APKFinding.objects.create(analysis=analysis, type="Exported Component", description=f"Component '{comp_name}' is exported and can be called by other apps.", severity="MEDIUM")
+
+def parse_trufflehog_json_for_apk(analysis, file_path):
+    from apk_analyzer.models import APKFinding
+    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0: return
+    with open(file_path, 'r') as f:
+        for line in f:
+            if line.strip():
+                data = json.loads(line)
+                APKFinding.objects.create(analysis=analysis, type="Leaked Secret", description=f"Found a potential secret: {data.get('DetectorName')}", severity="CRITICAL", details=data)
+                
+
+
+@shared_task
+def analyze_apk_finding_with_ai(finding_id):
+    try:
+        from apk_analyzer.models import APKFinding
+        finding = APKFinding.objects.get(id=finding_id)
+    except APKFinding.DoesNotExist:
+        return f"APKFinding with id {finding_id} not found."
+
+    try:
+        # --- هذا هو التعديل ---
+        # 1. تكوين المكتبة
+        genai.configure(api_key=settings.GEMINI_API_KEY)
+        
+        # 2. إنشاء النموذج (استخدام أحدث اسم مستقر)
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
+
+        # 3. تحضير الـ Prompt (يبقى كما هو)
+        prompt = f"""
+        As an expert mobile security analyst, analyze the following Android APK finding.
+        Provide a concise, structured report in Markdown format with clear, actionable advice for a developer.
+
+        **Finding Information:**
+        - **Type:** {finding.type}
+        - **Description:** {finding.description}
+        - **Severity:** {finding.severity}
+        - **Technical Details (JSON):** {json.dumps(finding.details, indent=2)}
+
+        **Your report must include these sections in Markdown:**
+        1.  **### 🕵️‍♂️ What is this?** (Explain the finding in simple terms).
+        2.  **### 💣 What is the risk?** (Describe the real-world impact).
+        3.  **### 🛠️ How to fix it?** (Provide a clear, step-by-step solution).
+        4.  **### 🔬 How to test the fix?** (Explain how to verify the fix).
+        """
+        
+        # 4. توليد المحتوى
+        response = model.generate_content(prompt)
+        analysis_text = response.text
+
+        finding.ai_analysis = analysis_text
+        finding.save()
+        return f"Successfully analyzed APK finding #{finding.id}."
+
+    except Exception as e:
+        # تحسين رسالة الخطأ لتكون أكثر وضوحًا
+        error_message = f"Gemini API Error: {str(e)}"
+        print(error_message) # طباعة الخطأ في سجل Celery
+        finding.ai_analysis = error_message
+        finding.save()
+        return error_message
+
+# --- إضافة جديدة: مهمة التحليل الديناميكي للتطبيقات ---
+@shared_task
+def run_dynamic_analysis_task(analysis_id):
+    from apk_analyzer.models import APKAnalysis, APKFinding
+    import subprocess, os, json, shutil
+    from django.utils import timezone
+
+    try:
+        analysis = APKAnalysis.objects.get(id=analysis_id)
+    except APKAnalysis.DoesNotExist:
+        return f"APKAnalysis with id {analysis_id} not found."
+
+    analysis.status = 'ANALYZING'
+    analysis.save()
+
+    apk_path = analysis.apk_file.path
+    log_file = f"/tmp/waydroid_capture_{analysis.id}.mitm"
+
+    try:
+        # 1️⃣ تشغيل Waydroid + تثبيت التطبيق
+        subprocess.run(f"adb install -r {apk_path}", shell=True, check=True)
+
+        # 2️⃣ تشغيل التطبيق
+        try:
+            # المحاولة الأولى: monkey
+            subprocess.run(
+                f"adb shell monkey -p {analysis.package_name} -c android.intent.category.LAUNCHER 1",
+                shell=True, check=True
+            )
+        except subprocess.CalledProcessError:
+            # fallback: am start مع Activity من قاعدة البيانات
+            if analysis.fallback_activity:
+                subprocess.run(
+                    f"adb shell am start -n {analysis.package_name}/{analysis.fallback_activity}",
+                    shell=True, check=True
+                )
+            else:
+                raise Exception("No fallback activity specified in APKAnalysis")
+
+        # 3️⃣ تسجيل الترافيك عبر mitmproxy (يفترض أنه شغال مسبقًا)
+        # هنا نفترض أن mitmproxy يسجل تلقائيًا في log_file
+
+        # 4️⃣ تحليل ملف mitmproxy
+        if os.path.exists(log_file):
+            from mitmproxy.io import FlowReader
+            with open(log_file, "rb") as f:
+                reader = FlowReader(f)
+                for flow in reader.stream():
+                    req = flow.request
+                    resp = flow.response
+
+                    url = req.pretty_url
+                    method = req.method
+                    headers = dict(req.headers)
+                    body = req.get_text() if req.content else None
+
+                    # نلتقط فقط الهيدرز الحساسة
+                    sensitive_headers = {
+                        k: v for k, v in headers.items()
+                        if k.lower() in ["authorization", "cookie", "token"]
+                    }
+
+                    details = {
+                        "method": method,
+                        "url": url,
+                        "headers": sensitive_headers,
+                        "body": body[:500] if body else None,
+                        "status_code": resp.status_code if resp else None,
+                        "response_snippet": resp.get_text()[:500] if resp and resp.content else None
+                    }
+
+                    # نخزن كل طلب كـ Finding
+                    APKFinding.objects.create(
+                        analysis=analysis,
+                        type="Dynamic HTTP Request",
+                        description=f"{method} {url} (Status: {details['status_code']})",
+                        severity="INFO",
+                        details=details
+                    )
+
+        analysis.status = 'COMPLETED'
+        result_message = "Dynamic analysis completed successfully."
+
+    except Exception as e:
+        analysis.status = 'FAILED'
+        result_message = f"Dynamic analysis failed: {str(e)}"
+
+    finally:
+        analysis.completed_at = timezone.now()
+        analysis.save()
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
+    return result_message
+
+
+@shared_task
+def run_prowler_audit_task(scan_id):
+    try:
+        scan = CloudScan.objects.get(id=scan_id)
+        env = scan.environment
+    except (CloudScan.DoesNotExist, AWSEnvironment.DoesNotExist):
+        return "Scan or Environment not found."
+
+    scan.status = 'ANALYZING'
+    scan.save()
+
+    # إعداد متغيرات البيئة لمفاتيح AWS
+    prowler_env = os.environ.copy()
+    prowler_env['AWS_ACCESS_KEY_ID'] = env.access_key_id
+    prowler_env['AWS_SECRET_ACCESS_KEY'] = env.secret_access_key
+    prowler_env['AWS_DEFAULT_REGION'] = env.default_region
+
+    output_file = f"/tmp/prowler_report_{scan.id}.json"
+    # المسار إلى prowler داخل venv
+    prowler_path = "/home/hamid/defense-platform/venv/bin/prowler"
+    command = [prowler_path, 'aws', '--output-mode', 'json']
+
+    try:
+        # Prowler يطبع النتائج إلى stdout، لذلك سنلتقطها
+        with open(output_file, 'w') as f:
+            result = subprocess.run(
+                command,
+                env=prowler_env,
+                stdout=f, # توجيه المخرجات مباشرة إلى ملف
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=3600 # مهلة ساعة
+            )
+        
+        if result.returncode != 0:
+            raise Exception(f"Prowler failed with stderr: {result.stderr}")
+
+        # تحليل النتائج
+        parse_prowler_json(scan, output_file)
+
+        scan.status = 'COMPLETED'
+        result_message = "Prowler audit completed successfully."
+    except Exception as e:
+        scan.status = 'FAILED'
+        result_message = f"Prowler audit failed: {e}"
+    
+    finally:
+        scan.completed_at = timezone.now()
+        scan.save()
+        if os.path.exists(output_file):
+            os.remove(output_file)
+    
+    return result_message
+
+def parse_prowler_json(scan, file_path):
+    # Prowler يخرج JSON object لكل نتيجة في سطر منفصل (JSONL)
+    with open(file_path, 'r') as f:
+        for line in f:
+            try:
+                data = json.loads(line)
+                if data.get('Status') == 'FAIL':
+                    CloudFinding.objects.create(
+                        scan=scan,
+                        status=data.get('Status'),
+                        severity=data.get('Severity'),
+                        service_name=data.get('ServiceName'),
+                        region=data.get('Region'),
+                        resource_id=data.get('ResourceId'),
+                        description=data.get('StatusExtended'),
+                        remediation=data.get('Remediation', {}).get('Recommendation', {}).get('Text'),
+                        details=data
+                    )
+            except json.JSONDecodeError:
+                continue

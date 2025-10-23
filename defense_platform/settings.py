@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'vulnerable_app',
     'network_mapper',
     'django_extensions',
+    'apk_analyzer', 
+    'cloud_scanner',
 ]
 
 MIDDLEWARE = [
@@ -139,7 +141,7 @@ CELERY_RESULT_SERIALIZER = 'json'
 
 # External API Keys
 VIRUSTOTAL_API_KEY = 'ede8ebd86f4c1123741fdf650cbc36affa78f1ff1082fc53569ed3f1e10a04fa'
-GEMINI_API_KEY = 'AIzaSyB969JRvztrI0oKDV8Q7aPHyNAUjg_jkAc'
+GEMINI_API_KEY = 'AIzaSyCpBC6V51FOdA368rkgIzg6NzglsEMbk48'
 TELEGRAM_BOT_TOKEN = '8346563640:AAG-aXp2sirr1fsZoeILEJXPh_F5UCwRKHk'
 
 # --- Email Configuration for Phishing ---

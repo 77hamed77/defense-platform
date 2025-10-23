@@ -1,217 +1,308 @@
-<!-- core/templates/core/scan_detail.html -->
 {% extends "core/base.html" %}
-
 {% block title %}Scan Report — {{ scan.target_url }}{% endblock %}
 
 {% block content %}
-<div class="space-y-10 animate-fadeIn">
-    <!-- Header -->
-    <div class="flex flex-wrap items-start justify-between gap-6 bg-gradient-to-r from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 shadow-lg backdrop-blur-sm">
-        <div>
-            <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
-                <span class="text-blue-400 drop-shadow-md">🧾</span>
-                <span class="hover:text-blue-300 transition">Scan Report</span>
-            </h1>
-            <p class="text-gray-400 mt-2">
-                Target:
-                <span class="font-mono text-sm text-gray-200">{{ scan.target_url }}</span>
-                &nbsp;•&nbsp;
-                Status:
-                <strong class="ml-1 text-blue-400">{{ scan.get_status_display }}</strong>
-            </p>
-            <p class="text-gray-500 text-sm mt-2">
-                Started: {{ scan.created_at|date:"Y-m-d H:i" }}
-                {% if scan.completed_at %}
-                • Completed: {{ scan.completed_at|date:"Y-m-d H:i" }}
-                {% endif %}
-            </p>
-        </div>
+<div class="relative overflow-hidden text-emerald-100">
 
-        <div class="flex items-center gap-3">
-            <a href="{% url 'scanner' %}"
-            <!-- --- إضافة جديدة: زر Eyewitness ورابط التقرير --- -->
+  <!-- === نفس الخلفية الرقمية المتحركة المستخدمة في Scanner/Dashboard === -->
+  <canvas id="matrixRain" class="fixed inset-0 w-full h-full -z-30"></canvas>
+  <canvas id="cyberWaves" class="fixed inset-0 w-full h-full -z-25"></canvas>
+  <div class="fixed inset-0 bg-gradient-to-br from-black/90 via-[#00140a]/85 to-black/95 -z-40"></div>
+
+  <div class="space-y-8 animate-fadeIn relative z-10 p-6">
+
+    <!-- Header -->
+    <div class="flex flex-wrap items-start justify-between gap-6 card border border-emerald-800/40 rounded-2xl p-6 shadow-[0_0_30px_rgba(0,255,150,0.06)] bg-black/60 backdrop-blur-lg">
+      <div>
+        <h1 class="text-3xl font-extrabold text-white flex items-center gap-3">
+          <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,150,0.7)]">🧾</span>
+          Scan Report
+        </h1>
+
+        <p class="text-gray-400 mt-2">
+          Target:
+          <span class="font-mono text-sm text-emerald-200 ml-1">{{ scan.target_url }}</span>
+          &nbsp;•&nbsp;
+          Status:
+          <strong class="ml-1 text-emerald-300">{{ scan.get_status_display }}</strong>
+        </p>
+
+        <p class="text-gray-500 text-sm mt-2">
+          Started: {{ scan.created_at|date:"Y-m-d H:i" }}
+          {% if scan.completed_at %}
+          • Completed: {{ scan.completed_at|date:"Y-m-d H:i" }}
+          {% endif %}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-3">
         {% if scan.tool.name in "Subfinder,Amass" %}
-            <form method="post" action="{% url 'run_eyewitness' scan.id %}">
-                {% csrf_token %}
-                <button type="submit" class="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg shadow">
-                    📸 Run Eyewitness
-                </button>
-            </form>
+        <form method="post" action="{% url 'run_eyewitness' scan.id %}">
+          {% csrf_token %}
+          <button type="submit" class="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-black px-4 py-2 rounded-lg shadow-md transform hover:-translate-y-0.5 transition">
+            📸 Run Eyewitness
+          </button>
+        </form>
         {% endif %}
 
         {% if scan.eyewitness_report_path %}
-            <a href="{{ MEDIA_URL }}{{ scan.eyewitness_report_path }}" target="_blank" class="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg shadow hover:bg-green-700">
-                🖼️ View Report
-            </a>
+        <a href="{{ MEDIA_URL }}{{ scan.eyewitness_report_path }}" target="_blank" class="inline-flex items-center gap-2 bg-emerald-500 text-black px-4 py-2 rounded-lg shadow-md hover:bg-emerald-400 transition">
+          🖼️ View Report
+        </a>
         {% endif %}
 
-        <a href="{% url 'scanner' %}"
-           class="inline-flex items-center gap-2 bg-gray-800 text-gray-200 px-4 py-2 rounded-lg shadow hover:bg-gray-700 hover:shadow-lg hover:-translate-y-0.5 transition">
-            ← Back
+        <a href="{% url 'scanner' %}" class="inline-flex items-center gap-2 bg-gray-800 text-emerald-200 px-4 py-2 rounded-lg shadow hover:bg-gray-700 transition">
+          ← Back
         </a>
 
-            <button id="download-json"
-                    class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 transition">
-                ⤓ Download JSON
-            </button>
-        </div>
+        <button id="download-json" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow-md transform hover:-translate-y-0.5 transition">
+          ⤓ Download JSON
+        </button>
+      </div>
     </div>
 
     <!-- Summary card -->
-    <div class="bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6 shadow-md hover:shadow-blue-600/10 transition">
-        <div class="flex justify-between items-center">
-            <div>
-                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
-                    📊 Summary
-                </h2>
-                <p class="text-gray-400 mt-2">
-                    Vulnerabilities found:
-                    <span class="font-bold {% if scan.vulnerabilities.count > 0 %}text-red-400{% else %}text-green-400{% endif %}">
-                        {{ scan.vulnerabilities.count }}
-                    </span>
-                </p>
-            </div>
-            <div class="text-sm text-gray-400">
-                Scan ID:
-                <span class="font-mono text-gray-300">{{ scan.id }}</span>
-            </div>
+    <div class="card border border-emerald-800/40 rounded-2xl p-6 bg-black/60 backdrop-blur-lg shadow-[0_0_20px_rgba(0,255,150,0.05)]">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-semibold text-emerald-300 flex items-center gap-2">📊 Summary</h2>
+          <p class="text-gray-400 mt-2">
+            Vulnerabilities found:
+            <span class="font-bold {% if scan.vulnerabilities.count > 0 %}text-rose-400{% else %}text-emerald-300{% endif %}">
+              {{ scan.vulnerabilities.count }}
+            </span>
+          </p>
         </div>
+
+        <div class="text-sm text-emerald-300">
+          Scan ID:
+          <span class="font-mono text-emerald-200 ml-1">{{ scan.id }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Vulnerabilities list -->
-    <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 shadow-lg">
-        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            🛡️ Vulnerabilities
-        </h3>
+    <div class="card border border-emerald-800/40 rounded-2xl p-6 bg-black/60 backdrop-blur-lg shadow-lg">
+      <h3 class="text-xl font-bold text-emerald-300 mb-6 flex items-center gap-2">🛡️ Vulnerabilities</h3>
 
-        {% if vulnerabilities.exists %}
-        <div class="space-y-6">
-            {% for vuln in vulnerabilities %}
-            <div class="border border-gray-800 rounded-xl p-5 bg-gray-950 hover:border-indigo-600/60 hover:shadow-lg hover:shadow-indigo-600/10 transition-all duration-300 ease-out">
-                <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                    <div class="flex-1">
-                        <div class="flex flex-wrap items-center gap-3">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-200 border border-gray-700">
-                                Severity: <span class="ml-1 text-{{ vuln.severity|lower }}-400">{{ vuln.severity|default:"N/A" }}</span>
-                            </span>
+      {% if vulnerabilities.exists %}
+      <div class="space-y-6">
+        {% for vuln in vulnerabilities %}
+        <div class="border border-emerald-900/20 rounded-xl p-5 bg-gradient-to-br from-black/50 to-[#00120a]/30 hover:from-black/60 hover:shadow-[0_0_20px_rgba(0,255,150,0.06)] transition-all">
+          <div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+            <div class="flex-1">
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-900/30 text-emerald-200 border border-emerald-800">
+                  Severity: <span class="ml-1 text-{{ vuln.severity|lower }}-400">{{ vuln.severity|default:"N/A" }}</span>
+                </span>
 
-                            <h4 class="text-base font-semibold text-white leading-snug">
-                                {{ vuln.description|default:"(No description)" }}
-                            </h4>
-                        </div>
+                <h4 class="text-base font-semibold text-emerald-100 leading-snug">
+                  {{ vuln.description|default:"(No description)" }}
+                </h4>
+              </div>
 
-                        <p class="text-xs text-gray-500 mt-2 leading-relaxed">
-                            🔑 Finding ID: <span class="font-mono text-gray-400">{{ vuln.id }}</span>
-                            {% if vuln.details.url %}
-                            • 🌐 URL:
-                            <span class="font-mono text-gray-400">{{ vuln.details.url }}</span>
-                            {% endif %}
-                            {% if vuln.details.method %}
-                            • 🔧 Method: <span class="text-gray-400">{{ vuln.details.method }}</span>
-                            {% endif %}
-                        </p>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex flex-col items-end gap-2">
-                        <button class="copy-btn inline-flex items-center gap-2 text-xs bg-gray-800 text-gray-200 px-3 py-1.5 rounded-md hover:bg-gray-700 hover:scale-105 transition"
-                                data-details="{{ vuln.details|escapejs }}">
-                            📋 Copy JSON
-                        </button>
-
-                        <button class="toggle-btn inline-flex items-center gap-2 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 hover:scale-105 transition">
-                            ▾ Details
-                        </button>
-                        
-                        <form method="post" action="{% url 'test_exploit' vuln.id %}"
-                              onsubmit="return confirm('WARNING: This will attempt to actively exploit the target. Proceed only with explicit authorization.');">
-                            {% csrf_token %}
-                            <button type="submit" class="inline-flex items-center gap-2 text-xs bg-red-600 text-white px-3 py-1.5 rounded-md hover:bg-red-700 hover:scale-105 transition">
-                                🔥 Test Exploit
-                            </button>
-                        </form>
-
-                        <form method="post" action="{% url 'analyze_vulnerability' vuln.id %}">
-                            {% csrf_token %}
-                            <button type="submit" class="inline-flex items-center gap-2 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-md hover:bg-purple-700 hover:scale-105 transition">
-                                ✨ Analyze with AI
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Collapsible details -->
-                <div class="mt-4 details-panel hidden bg-gray-900 border border-gray-800 rounded-lg p-4 shadow-inner">
-                    <pre class="text-sm leading-relaxed overflow-auto max-h-64 text-gray-200 font-mono whitespace-pre-wrap">{{ vuln.details|default:"{}"|pprint }}</pre>
-                </div>
-
-                <!-- AI Analysis Section -->
-                {% if vuln.ai_analysis %}
-                <div class="mt-5 border-t border-indigo-500/30 pt-4">
-                    <h5 class="text-sm font-bold text-indigo-300 mb-2 flex items-center gap-2">
-                        🤖 AI Analyst Report
-                    </h5>
-                    <div class="prose prose-invert prose-sm max-w-none leading-relaxed">
-                        {{ vuln.ai_analysis|safe }}
-                    </div>
-                </div>
+              <p class="text-xs text-gray-400 mt-2 leading-relaxed">
+                🔑 Finding ID: <span class="font-mono text-emerald-200">{{ vuln.id }}</span>
+                {% if vuln.details.url %}
+                • 🌐 URL: <span class="font-mono text-emerald-200">{{ vuln.details.url }}</span>
                 {% endif %}
+                {% if vuln.details.method %}
+                • 🔧 Method: <span class="text-emerald-200">{{ vuln.details.method }}</span>
+                {% endif %}
+              </p>
             </div>
-            {% endfor %}
+
+            <!-- Actions -->
+            <div class="flex flex-col items-end gap-2">
+              <button class="copy-btn inline-flex items-center gap-2 text-xs bg-emerald-800 text-emerald-100 px-3 py-1.5 rounded-md hover:bg-emerald-700 hover:scale-105 transition"
+                      data-details="{{ vuln.details|escapejs }}">
+                📋 Copy JSON
+              </button>
+
+              <button class="toggle-btn inline-flex items-center gap-2 text-xs bg-emerald-600 text-black px-3 py-1.5 rounded-md hover:bg-emerald-500 hover:scale-105 transition">
+                ▾ Details
+              </button>
+
+              <form method="post" action="{% url 'test_exploit' vuln.id %}"
+                    onsubmit="return confirm('WARNING: This will attempt to actively exploit the target. Proceed only with explicit authorization.');">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center gap-2 text-xs bg-rose-600 text-black px-3 py-1.5 rounded-md hover:bg-rose-700 hover:scale-105 transition">
+                  🔥 Test Exploit
+                </button>
+              </form>
+
+              <form method="post" action="{% url 'analyze_vulnerability' vuln.id %}">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center gap-2 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-md hover:bg-indigo-700 hover:scale-105 transition">
+                  ✨ Analyze with AI
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Collapsible details -->
+          <div class="mt-4 details-panel hidden bg-black/70 border border-emerald-900/20 rounded-lg p-4 shadow-inner">
+            <pre class="text-sm leading-relaxed overflow-auto max-h-64 text-emerald-100 font-mono whitespace-pre-wrap">{{ vuln.details|default:"{}"|pprint }}</pre>
+          </div>
+
+          <!-- AI Analysis -->
+          {% if vuln.ai_analysis %}
+          <div class="mt-5 border-t border-emerald-700/20 pt-4">
+            <h5 class="text-sm font-bold text-emerald-300 mb-2 flex items-center gap-2">🤖 AI Analyst Report</h5>
+            <div class="prose prose-invert prose-sm max-w-none leading-relaxed text-emerald-100">
+              {{ vuln.ai_analysis|safe }}
+            </div>
+          </div>
+          {% endif %}
         </div>
+        {% endfor %}
+      </div>
 
-        {% else %}
-        <p class="text-gray-400 italic">✅ No vulnerabilities found for this scan.</p>
-        {% endif %}
+      {% else %}
+      <p class="text-emerald-300 italic">✅ No vulnerabilities found for this scan.</p>
+      {% endif %}
     </div>
-</div>
+  </div>
 
-<!-- Animations + Interactions -->
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // Toggle details
+  <!-- ========== Scripts: (copy, toggle, download) + same background animation as other pages ========== -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Toggle details panels
     document.querySelectorAll('.toggle-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const panel = btn.closest('.border').querySelector('.details-panel');
-            panel.classList.toggle('hidden');
-            btn.textContent = panel.classList.contains('hidden') ? "▾ Details" : "▴ Hide";
-        });
+      btn.addEventListener('click', () => {
+        const card = btn.closest('div.border, div[class*="rounded-xl"]');
+        const panel = btn.closest('.border')?.querySelector('.details-panel') || btn.closest('[class*="rounded-xl"]').querySelector('.details-panel');
+        if (!panel) return;
+        panel.classList.toggle('hidden');
+        btn.textContent = panel.classList.contains('hidden') ? "▾ Details" : "▴ Hide";
+      });
     });
 
-    // Copy JSON
+    // Copy JSON to clipboard
     document.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const raw = btn.getAttribute('data-details') || '{}';
-            try {
-                const formatted = JSON.stringify(JSON.parse(raw), null, 2);
-                await navigator.clipboard.writeText(formatted);
-                btn.textContent = '✅ Copied';
-                setTimeout(() => btn.textContent = '📋 Copy JSON', 1500);
-            } catch {
-                btn.textContent = '❌ Failed';
-                setTimeout(() => btn.textContent = '📋 Copy JSON', 1500);
-            }
-        });
+      btn.addEventListener('click', async () => {
+        const raw = btn.getAttribute('data-details') || '{}';
+        try {
+          const pretty = JSON.stringify(JSON.parse(raw), null, 2);
+          await navigator.clipboard.writeText(pretty);
+          const old = btn.innerHTML;
+          btn.innerHTML = '✅ Copied';
+          setTimeout(() => btn.innerHTML = old, 1400);
+        } catch (e) {
+          const old = btn.innerHTML;
+          btn.innerHTML = '❌ Failed';
+          setTimeout(() => btn.innerHTML = old, 1400);
+        }
+      });
     });
 
-    // Download JSON
+    // Download all vuln JSON
     const downloadBtn = document.getElementById('download-json');
     if (downloadBtn) {
-        downloadBtn.addEventListener('click', () => {
-            const rows = document.querySelectorAll('.copy-btn');
-            const items = [];
-            rows.forEach(r => {
-                try { items.push(JSON.parse(r.getAttribute('data-details') || '{}')); } catch {}
-            });
-            const blob = new Blob([JSON.stringify(items, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'scan_{{ scan.id }}_vulnerabilities.json';
-            a.click();
-            URL.revokeObjectURL(url);
+      downloadBtn.addEventListener('click', () => {
+        const rows = document.querySelectorAll('.copy-btn');
+        const items = [];
+        rows.forEach(r => {
+          try { items.push(JSON.parse(r.getAttribute('data-details') || '{}')); } catch {}
         });
+        const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'scan_{{ scan.id }}_vulnerabilities.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
     }
-});
-</script>
+  });
+  </script>
+
+  <!-- ======= Matrix Rain + Waves + Particles (same script used in Scanner/Dashboard) ======= -->
+  <script>
+  // Canvas setup
+  const rainCanvas = document.getElementById('matrixRain');
+  const wavesCanvas = document.getElementById('cyberWaves');
+  const rCtx = rainCanvas.getContext('2d');
+  const wCtx = wavesCanvas.getContext('2d');
+
+  let W, H, columns, drops = [], particles = [], t = 0;
+  function onResize() {
+    W = rainCanvas.width = wavesCanvas.width = window.innerWidth;
+    H = rainCanvas.height = wavesCanvas.height = window.innerHeight;
+    const fontSize = Math.max(12, Math.floor(W / 80));
+    columns = Math.floor(W / fontSize);
+    drops = Array(columns).fill(1);
+    particles = Array.from({length: Math.floor(W/30)}, () => ({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*2+0.5,
+      s: Math.random()*0.4+0.1
+    }));
+    rCtx.font = `${fontSize}px monospace`;
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  function drawRain() {
+    // translucent background to create trail
+    rCtx.fillStyle = 'rgba(0,0,0,0.06)';
+    rCtx.fillRect(0,0,W,H);
+
+    rCtx.fillStyle = 'rgba(0,255,150,0.34)'; // neon green
+    for (let i=0;i<drops.length;i++){
+      const char = Math.random() > 0.5 ? '0' : '1';
+      const x = i * (W / columns);
+      const y = drops[i] * (parseInt(rCtx.font) || 14);
+      rCtx.fillText(char, x, y);
+      if (y > H && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+
+  function drawWavesAndParticles() {
+    wCtx.clearRect(0,0,W,H);
+    // waves
+    wCtx.lineWidth = 1.2;
+    for (let i=0;i<3;i++){
+      wCtx.beginPath();
+      wCtx.strokeStyle = `rgba(0,255,150,${0.06 + i*0.02})`;
+      for (let x=0;x<W;x+=8){
+        const y = H/2 + Math.sin(x*0.004 + t/30 + i) * (40 + i*15);
+        if (x===0) wCtx.moveTo(x,y); else wCtx.lineTo(x,y);
+      }
+      wCtx.stroke();
+    }
+    // particles
+    particles.forEach(p => {
+      wCtx.beginPath();
+      wCtx.fillStyle = 'rgba(0,255,150,0.08)';
+      wCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      wCtx.fill();
+      p.y += p.s;
+      if (p.y > H) p.y = -10;
+    });
+    t += 0.7;
+  }
+
+  // animate
+  function animate() {
+    drawRain();
+    drawWavesAndParticles();
+    requestAnimationFrame(animate);
+  }
+  animate();
+  </script>
+
+  <style>
+    .details-panel { transition: all 220ms ease; }
+    .prose a { color: #9fffb6; }
+    .severity-low { color: #16a34a; }
+    .severity-medium { color: #f59e0b; }
+    .severity-high { color: #ef4444; }
+    .severity-critical { color: #8b5cf6; }
+  </style>
+
+</div>
 {% endblock %}

@@ -1,80 +1,84 @@
-<!-- core/templates/core/scanner.html -->
-
 {% extends "core/base.html" %}
-
 {% block title %}Scanner Orchestrator{% endblock %}
 
 {% block content %}
-<div class="space-y-10 animate-fadeIn">
-    
-    <!-- Scanner Input Section -->
-    <div class="card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(0,150,255,0.15)] p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black backdrop-blur-sm relative overflow-hidden">
-        <!-- Cyber Glow Background -->
-        <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-cyan-500/5 to-transparent blur-3xl"></div>
+<div class="relative overflow-hidden text-gray-200">
+
+  <!-- ========= خلفية رقمية متحركة (Matrix Rain + Waves + Particles) ========= -->
+  <canvas id="matrixRain" class="fixed inset-0 w-full h-full -z-30"></canvas>
+  <canvas id="cyberWaves" class="fixed inset-0 w-full h-full -z-25"></canvas>
+  <div class="fixed inset-0 bg-gradient-to-br from-black/90 via-[#00140a]/85 to-black/95 -z-40"></div>
+
+  <div class="space-y-10 animate-fadeIn relative z-10 p-6">
+
+    <!-- ===== Scanner Input Section ===== -->
+    <div class="card border border-emerald-800/50 rounded-2xl shadow-[0_0_30px_rgba(0,255,150,0.10)] p-8 bg-gradient-to-br from-black/60 to-[#00120a]/60 backdrop-blur-lg relative overflow-hidden">
+        <!-- Neon glow -->
+        <div class="absolute inset-0 bg-gradient-to-r from-emerald-700/10 via-emerald-600/4 to-transparent blur-3xl pointer-events-none"></div>
 
         <div class="relative z-10">
-            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3">
-                <span class="text-blue-400 animate-pulse">🚀</span>
+            <h2 class="text-3xl font-extrabold text-white mb-3 flex items-center gap-3">
+                <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,150,0.7)]">🚀</span>
                 Scanner Orchestrator
             </h2>
-            <div class="w-40 h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-cyan-400 rounded-full mb-6"></div>
-            <p id="tool-description" class="text-gray-400 mb-8 leading-relaxed">Select a tool and enter a target to initiate a scan. The process will run securely in the background.</p>
-            
-            <form id="scan-form" method="post" action="{% url 'scanner' %}">
+            <div class="w-48 h-1.5 bg-gradient-to-r from-emerald-500 via-green-400 to-teal-400 rounded-full mb-6 shadow-[0_0_12px_rgba(0,255,150,0.35)]"></div>
+
+            <p id="tool-description" class="text-gray-400 mb-6 leading-relaxed">
+                Select a tool and enter a target to initiate a scan. The process runs securely and results will appear below.
+            </p>
+
+            <form id="scan-form" method="post" action="{% url 'scanner' %}" class="space-y-4">
                 {% csrf_token %}
-                <div class="space-y-4">
-                    <div id="main-form-grid" class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <!-- Tool Selector -->
-                        <select name="tool" id="tool-selector" required 
-                                class="md:col-span-2 bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-600 focus:border-blue-500 outline-none transition duration-300 hover:border-blue-400">
-                            <option value="" disabled selected>Select a Tool</option>
-                            {% for tool in available_tools %}
-                                <option value="{{ tool.id }}" data-description="{{ tool.description|default_if_none:'' }}">{{ tool.name }}</option>
-                            {% endfor %}
-                        </select>
+                <div id="main-form-grid" class="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                    <!-- Tool Selector -->
+                    <select name="tool" id="tool-selector" required
+                        class="md:col-span-2 bg-black/50 border border-emerald-800/40 rounded-xl p-3 text-emerald-200 placeholder-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition">
+                        <option value="" disabled selected>Select a Tool</option>
+                        {% for tool in available_tools %}
+                            <option value="{{ tool.id }}" data-description="{{ tool.description|default_if_none:'' }}">{{ tool.name }}</option>
+                        {% endfor %}
+                    </select>
 
-                        <!-- Target Input (for most tools) -->
-                        <input type="text" name="url" id="target-url" required 
-                            class="md:col-span-2 bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-blue-600 focus:border-blue-500 outline-none transition duration-300 hover:border-blue-400"
-                            placeholder="example.com or http://example.com">
+                    <!-- Target Input -->
+                    <input type="text" name="url" id="target-url" required
+                        class="md:col-span-2 bg-black/50 border border-emerald-800/40 rounded-xl p-3 text-emerald-100 placeholder-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition"
+                        placeholder="example.com or http://example.com">
 
-                        <!-- Submit Button -->
-                        <button id="scan-button" type="submit" 
-                            class="md:col-span-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-lg shadow-blue-900/40 transform hover:scale-105 active:scale-95 transition duration-300 ease-in-out">
-                            Start Scan
-                        </button>
-                    </div>
+                    <!-- Submit -->
+                    <button id="scan-button" type="submit"
+                        class="md:col-span-1 bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-black font-semibold py-3 px-6 rounded-xl shadow-lg shadow-emerald-900/40 transform hover:scale-[1.03] active:scale-95 transition">
+                        ▶ Start Scan
+                    </button>
+                </div>
 
-                    <!-- Hidden Textarea for XXEinjector -->
-                    <div id="xxe-input-container" class="hidden">
-                        <label for="xxe-request" class="block text-sm font-medium text-gray-300 mb-2">Raw HTTP Request (with 'XXEINJECT' placeholder):</label>
-                        <textarea name="xxe_request" id="xxe-request" rows="10" 
-                                class="w-full bg-gray-900/70 border border-gray-700 rounded-lg p-3 text-white font-mono text-sm placeholder-gray-600 focus:ring-2 focus:ring-blue-600 focus:border-blue-500 outline-none transition"
-                                placeholder="POST /api/vulnerable HTTP/1.1\nHost: example.com\nContent-Type: application/xml\n\n<?xml version='1.0'?>\n<data>XXEINJECT</data>"></textarea>
-                    </div>
+                <!-- XXE Raw Request textarea (hidden by default) -->
+                <div id="xxe-input-container" class="hidden mt-3">
+                    <label for="xxe-request" class="block text-sm font-medium text-emerald-200 mb-2">Raw HTTP Request (with <code>XXEINJECT</code>):</label>
+                    <textarea name="xxe_request" id="xxe-request" rows="8"
+                        class="w-full bg-black/50 border border-emerald-800/40 rounded-xl p-3 font-mono text-emerald-100 placeholder-emerald-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition"
+                        placeholder="POST /api/vulnerable HTTP/1.1\nHost: example.com\nContent-Type: application/xml\n\n<?xml version='1.0'?>\n<data>XXEINJECT</data>"></textarea>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Scans History Section -->
-    <div class="card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(0,150,255,0.12)] p-6 bg-gradient-to-br from-gray-900 via-black to-gray-950 backdrop-blur-sm">
+    <!-- ===== Scans History Section ===== -->
+    <div class="card border border-emerald-800/40 rounded-2xl p-6 bg-gradient-to-br from-black/60 to-[#00140a]/60 backdrop-blur-lg shadow-[0_0_30px_rgba(0,255,150,0.06)]">
         <div class="flex justify-between items-center mb-6">
             <h3 class="text-2xl font-bold text-white flex items-center gap-3">
-                <span class="text-indigo-400 animate-pulse">📜</span>
-                Recent Scans
+                <span class="text-emerald-300">📜</span> Recent Scans
             </h3>
+
             {% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
-            <span class="text-sm text-yellow-400 animate-pulse flex items-center gap-2">
-                <span class="w-2 h-2 bg-yellow-400 rounded-full animate-ping"></span>
-                Auto-refreshing...
+            <span class="text-sm text-amber-400 flex items-center gap-2">
+                <span class="w-2 h-2 bg-amber-400 rounded-full animate-ping"></span> Auto-refreshing...
             </span>
             {% endif %}
         </div>
-        
-        <div class="overflow-hidden border border-gray-800 rounded-lg shadow-inner shadow-black/40">
-            <table class="w-full text-sm text-left text-gray-300">
-                <thead class="bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 text-xs text-gray-400 uppercase tracking-wider border-b border-gray-700">
+
+        <div class="overflow-hidden border border-emerald-900/40 rounded-lg shadow-inner shadow-black/50">
+            <table class="w-full text-sm text-left text-emerald-100">
+                <thead class="bg-emerald-950/20 text-emerald-300 uppercase text-xs tracking-wider">
                     <tr>
                         <th class="px-4 py-3">Tool</th>
                         <th class="px-4 py-3">Target</th>
@@ -84,16 +88,13 @@
                         <th class="px-4 py-3 text-center">Actions / Duration</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-800">
+                <tbody class="divide-y divide-emerald-900/25">
                     {% for scan in scans_history %}
-                    <tr id="scan-row-{{ scan.id }}" 
-                        class="hover:bg-gradient-to-r hover:from-gray-800/60 hover:via-gray-900 hover:to-gray-800/60 transition-all duration-300"
-                        data-start-time="{{ scan.created_at.isoformat }}"
-                        data-status="{{ scan.status }}">
-                        
-                        <td class="px-4 py-3 font-semibold text-gray-200">{{ scan.tool.name|default:"N/A" }}</td>
+                    <tr id="scan-row-{{ scan.id }}" data-start-time="{{ scan.created_at.isoformat }}" data-status="{{ scan.status }}"
+                        class="hover:bg-emerald-900/5 transition-all duration-200">
+                        <td class="px-4 py-3 font-semibold text-emerald-200">{{ scan.tool.name|default:"N/A" }}</td>
                         <td class="px-4 py-3 font-mono">
-                            <a href="{% url 'scan_detail' scan.id %}" class="text-blue-400 hover:text-cyan-300 hover:underline transition">
+                            <a href="{% url 'scan_detail' scan.id %}" class="text-emerald-300 hover:text-emerald-200 hover:underline">
                                 {{ scan.target_url|truncatechars:40 }}
                             </a>
                         </td>
@@ -109,26 +110,23 @@
                         <td class="px-4 py-3 text-center vulnerabilities-cell">
                             {% if scan.status == 'COMPLETED' %}
                                 {% if scan.vulnerabilities.count > 0 %}
-                                    <span class="font-bold text-red-400 text-base drop-shadow-[0_0_5px_rgba(255,0,0,0.4)]">{{ scan.vulnerabilities.count }}</span>
+                                    <span class="font-bold text-rose-400 text-base drop-shadow-[0_0_6px_rgba(255,0,80,0.3)]">{{ scan.vulnerabilities.count }}</span>
                                 {% else %}
-                                    <span class="font-bold text-green-400 text-base drop-shadow-[0_0_5px_rgba(0,255,0,0.4)]">0</span>
+                                    <span class="font-bold text-emerald-300 text-base drop-shadow-[0_0_6px_rgba(0,255,150,0.2)]">0</span>
                                 {% endif %}
                             {% else %}
-                                <span class="text-gray-600">—</span>
+                                <span class="text-emerald-600">—</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap text-gray-400">{{ scan.created_at|date:"Y-m-d H:i" }}</td>
-                        
-                        <!-- Actions / Duration Column -->
+                        <td class="px-4 py-3 whitespace-nowrap text-emerald-400">{{ scan.created_at|date:"Y-m-d H:i" }}</td>
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <div class="flex items-center justify-center gap-4">
-                                <span class="timer font-mono text-sm text-gray-400 w-20 text-center bg-gray-900/50 rounded-md py-0.5"></span>
-                                
+                            <div class="flex items-center justify-center gap-3">
+                                <span class="timer font-mono text-sm text-emerald-200 w-24 text-center bg-black/40 rounded-md py-0.5"></span>
                                 {% if scan.status == 'RUNNING' or scan.status == 'PENDING' %}
-                                <form method="post" action="{% url 'stop_scan' scan.id %}" onsubmit="return confirm('Are you sure you want to terminate this scan?');">
+                                <form method="post" action="{% url 'stop_scan' scan.id %}" onsubmit="return confirm('Terminate this scan?');">
                                     {% csrf_token %}
-                                    <button type="submit" 
-                                        class="bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white text-xs font-bold py-1 px-3 rounded-md shadow-md shadow-red-900/40 transition transform hover:scale-110 active:scale-95">
+                                    <button type="submit"
+                                        class="bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-black text-xs font-bold py-1 px-3 rounded-md shadow-md shadow-rose-900/30 transform hover:scale-105 active:scale-95 transition">
                                         Stop
                                     </button>
                                 </form>
@@ -138,121 +136,190 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-6 text-gray-600 italic">No scans have been run yet.</td>
+                        <td colspan="6" class="text-center p-6 text-emerald-600 italic">No scans have been run yet.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-<!-- JavaScript for dynamic form, Timers, and Auto-Refresh -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // --- Dynamic Form Logic ---
+  </div> <!-- /.space-y-10 -->
+
+  <!-- ========== Scripts: Dynamic form, timers, auto-refresh, background animations ========== -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // --- Dynamic form behavior (XXEinjector switch) ---
     const toolSelector = document.getElementById('tool-selector');
     const toolDescription = document.getElementById('tool-description');
-    const targetUrlInput = document.getElementById('target-url');
     const xxeContainer = document.getElementById('xxe-input-container');
-    const xxeTextarea = document.getElementById('xxe-request');
-    const scanButton = document.getElementById('scan-button');
+    const targetUrlInput = document.getElementById('target-url');
     const mainFormGrid = document.getElementById('main-form-grid');
-    // --- إضافة جديدة: تعبئة الهدف تلقائيًا من الـ URL ---
+
+    // Prefill target from query param if present
     const urlParams = new URLSearchParams(window.location.search);
     const targetFromUrl = urlParams.get('url');
-    if (targetFromUrl) {
-        const targetInput = document.getElementById('target-url');
-        if (targetInput) {
-            targetInput.value = targetFromUrl;
-        }
+    if (targetFromUrl) targetUrlInput.value = targetFromUrl;
 
     toolSelector.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        const toolName = selectedOption.textContent;
-        const description = selectedOption.dataset.description;
+      const selected = this.options[this.selectedIndex];
+      const name = selected.textContent;
+      const desc = selected.dataset.description || '';
+      toolDescription.textContent = desc || 'Select a tool and enter a target.';
 
-        toolDescription.textContent = description || 'Select a tool and enter a target.';
-
-        if (toolName === 'XXEinjector') {
-            xxeContainer.classList.remove('hidden');
-            targetUrlInput.style.display = 'none';
-            targetUrlInput.required = false;
-            xxeTextarea.required = true;
-            
-            // Adjust grid for better layout when textarea is visible
-            mainFormGrid.classList.remove('md:grid-cols-5');
-            mainFormGrid.classList.add('md:grid-cols-1');
-            scanButton.classList.remove('md:col-span-1');
-            scanButton.classList.add('md:col-span-1'); // Button will be on its own line
-        } else {
-            xxeContainer.classList.add('hidden');
-            targetUrlInput.style.display = 'block';
-            targetUrlInput.required = true;
-            xxeTextarea.required = false;
-
-            // Revert grid layout
-            mainFormGrid.classList.add('md:grid-cols-5');
-            mainFormGrid.classList.remove('md:grid-cols-1');
-            scanButton.classList.add('md:col-span-1');
-        }
+      if (name && name.toLowerCase().includes('xxeinject')) {
+        xxeContainer.classList.remove('hidden');
+        targetUrlInput.required = false;
+        targetUrlInput.style.display = 'none';
+        mainFormGrid.classList.remove('md:grid-cols-5');
+        mainFormGrid.classList.add('md:grid-cols-1');
+      } else {
+        xxeContainer.classList.add('hidden');
+        targetUrlInput.required = true;
+        targetUrlInput.style.display = 'block';
+        mainFormGrid.classList.add('md:grid-cols-5');
+        mainFormGrid.classList.remove('md:grid-cols-1');
+      }
     });
 
-    // --- Timer Logic ---
+    // --- Timers for running scans ---
     const timerRows = document.querySelectorAll('tr[data-start-time]');
-    
     function formatDuration(seconds) {
-        if (seconds < 0) seconds = 0;
-        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-        return `${h}:${m}:${s}`;
+      if (seconds < 0) seconds = 0;
+      const h = Math.floor(seconds/3600).toString().padStart(2,'0');
+      const m = Math.floor((seconds%3600)/60).toString().padStart(2,'0');
+      const s = Math.floor(seconds%60).toString().padStart(2,'0');
+      return `${h}:${m}:${s}`;
     }
 
     timerRows.forEach(row => {
-        const timerEl = row.querySelector('.timer');
-        const startTimeStr = row.dataset.startTime;
-        const status = row.dataset.status;
-
-        if (!startTimeStr || (status !== 'RUNNING' && status !== 'PENDING')) {
-            timerEl.textContent = '—';
-            return;
-        }
-
-        const startTime = new Date(startTimeStr);
-        const updateTimer = () => {
-            const now = new Date();
-            const elapsedSeconds = Math.round((now - startTime) / 1000);
-            timerEl.textContent = formatDuration(elapsedSeconds);
-        };
-        const intervalId = setInterval(updateTimer, 1000);
-        row.dataset.intervalId = intervalId;
-        updateTimer();
+      const timerEl = row.querySelector('.timer');
+      const start = row.dataset.startTime;
+      const status = row.dataset.status;
+      if (!start || (status !== 'RUNNING' && status !== 'PENDING')) {
+        if (timerEl) timerEl.textContent = '—';
+        return;
+      }
+      const startTime = new Date(start);
+      const update = () => {
+        const now = new Date();
+        const elapsed = Math.round((now - startTime) / 1000);
+        timerEl.textContent = formatDuration(elapsed);
+      };
+      update();
+      const id = setInterval(update, 1000);
+      row.dataset.intervalId = id;
     });
 
-    // --- Auto-Refresh Logic ---
+    // --- Auto refresh polling for top-running scan (if any) ---
     {% if scans_history.0 and scans_history.0.status in 'RUNNING,PENDING' %}
-        const scanId = {{ scans_history.0.id }};
-        const statusUrl = `/api/scans/${scanId}/status/`;
-
-        const checkStatus = async () => {
-            try {
-                const response = await fetch(statusUrl);
-                if (!response.ok) {
-                    clearInterval(pollingInterval); return;
-                }
-                const data = await response.json();
-                if (data.status === 'COMPLETED' || data.status === 'FAILED') {
-                    clearInterval(pollingInterval);
-                    window.location.reload();
-                }
-            } catch (error) {
-                console.error('Error during status poll:', error);
-                clearInterval(pollingInterval);
-            }
-        };
-        const pollingInterval = setInterval(checkStatus, 5000); // Check every 5 seconds
+    (function() {
+      const scanId = {{ scans_history.0.id }};
+      const url = `/api/scans/${scanId}/status/`;
+      let poll = setInterval(async () => {
+        try {
+          const res = await fetch(url);
+          if (!res.ok) { clearInterval(poll); return; }
+          const data = await res.json();
+          if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+            clearInterval(poll);
+            window.location.reload();
+          }
+        } catch (e) {
+          console.error('Polling error', e);
+        }
+      }, 5000);
+    })();
     {% endif %}
-}});
-</script>
+  });
+  </script>
+
+  <!-- ========== Matrix Rain + Waves + Particles ========== -->
+  <script>
+  // Canvas setup
+  const rainCanvas = document.getElementById('matrixRain');
+  const wavesCanvas = document.getElementById('cyberWaves');
+  const rCtx = rainCanvas.getContext('2d');
+  const wCtx = wavesCanvas.getContext('2d');
+
+  let W, H, columns, drops = [], particles = [], t = 0;
+  function onResize() {
+    W = rainCanvas.width = wavesCanvas.width = window.innerWidth;
+    H = rainCanvas.height = wavesCanvas.height = window.innerHeight;
+    const fontSize = Math.max(12, Math.floor(W / 80));
+    columns = Math.floor(W / fontSize);
+    drops = Array(columns).fill(1);
+    particles = Array.from({length: Math.floor(W/30)}, () => ({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*2+0.5,
+      s: Math.random()*0.4+0.1
+    }));
+    rCtx.font = `${fontSize}px monospace`;
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  function drawRain() {
+    // translucent background to create trail
+    rCtx.fillStyle = 'rgba(0,0,0,0.06)';
+    rCtx.fillRect(0,0,W,H);
+
+    rCtx.fillStyle = 'rgba(0,255,150,0.34)'; // neon green
+    for (let i=0;i<drops.length;i++){
+      const char = Math.random() > 0.5 ? '0' : '1';
+      const x = i * (W / columns);
+      const y = drops[i] * (parseInt(rCtx.font) || 14);
+      rCtx.fillText(char, x, y);
+      if (y > H && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+
+  function drawWavesAndParticles() {
+    wCtx.clearRect(0,0,W,H);
+    // waves
+    wCtx.lineWidth = 1.2;
+    for (let i=0;i<3;i++){
+      wCtx.beginPath();
+      wCtx.strokeStyle = `rgba(0,255,150,${0.06 + i*0.02})`;
+      for (let x=0;x<W;x+=8){
+        const y = H/2 + Math.sin(x*0.004 + t/30 + i) * (40 + i*15);
+        if (x===0) wCtx.moveTo(x,y); else wCtx.lineTo(x,y);
+      }
+      wCtx.stroke();
+    }
+    // particles
+    particles.forEach(p => {
+      wCtx.beginPath();
+      wCtx.fillStyle = 'rgba(0,255,150,0.08)';
+      wCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      wCtx.fill();
+      p.y += p.s;
+      if (p.y > H) p.y = -10;
+    });
+    t += 0.7;
+  }
+
+  // animate
+  function animate() {
+    drawRain();
+    drawWavesAndParticles();
+    requestAnimationFrame(animate);
+  }
+  animate();
+  </script>
+
+  <!-- ========== Small helper styles ========== -->
+  <style>
+    /* Counter number style (smooth monospace) */
+    .counter { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+    /* Severity classes fallback */
+    .severity-low { background-color: rgba(34,197,94,0.12); color: #16a34a; }
+    .severity-medium { background-color: rgba(245,158,11,0.12); color: #f59e0b; }
+    .severity-high { background-color: rgba(239,68,68,0.12); color: #ef4444; }
+    .severity-critical { background-color: rgba(139,92,246,0.12); color: #8b5cf6; }
+  </style>
+
+</div>
 {% endblock %}

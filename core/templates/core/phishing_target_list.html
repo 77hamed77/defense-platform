@@ -1,50 +1,50 @@
-<!-- core/templates/core/phishing_target_list.html -->
-
 {% extends "core/base.html" %}
-
 {% block title %}Phishing - Targets{% endblock %}
 
 {% block content %}
-<div class="space-y-10 animate-fadeIn">
+<div class="relative overflow-hidden text-emerald-100">
+
+  <!-- === الخلفية الرقمية المتحركة (مطابقة لستايل Scanner/Dashboard) === -->
+  <canvas id="matrixRain" class="fixed inset-0 w-full h-full -z-30"></canvas>
+  <canvas id="cyberWaves" class="fixed inset-0 w-full h-full -z-25"></canvas>
+  <div class="fixed inset-0 bg-gradient-to-br from-black/90 via-[#00140a]/85 to-black/95 -z-40"></div>
+
+  <div class="space-y-10 animate-fadeIn relative z-10 p-6">
 
     <!-- Add New Target Section -->
-    <div class="relative card border border-gray-800 rounded-2xl shadow-[0_0_25px_rgba(255,100,0,0.25)] p-8 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden">
-        <!-- Glow effect -->
-        <div class="absolute inset-0 bg-gradient-to-tr from-orange-700/10 via-transparent to-transparent blur-2xl"></div>
+    <div class="card border border-emerald-800/50 rounded-2xl shadow-[0_0_30px_rgba(0,255,150,0.08)] p-8 bg-gradient-to-br from-black/60 to-[#00120a]/60 backdrop-blur-lg relative overflow-hidden">
+        <!-- Neon glow -->
+        <div class="absolute inset-0 bg-gradient-to-tr from-emerald-700/10 via-emerald-600/4 to-transparent blur-3xl pointer-events-none"></div>
 
         <div class="relative z-10">
-            <h2 class="text-3xl font-bold text-white mb-3 flex items-center gap-3 tracking-wide">
-                <span class="text-orange-400 drop-shadow-[0_0_6px_rgba(255,150,50,0.6)]">🎯</span>
+            <h2 class="text-3xl font-extrabold text-white mb-3 flex items-center gap-3 tracking-wide">
+                <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,150,0.7)]">🎯</span>
                 Add New Target
             </h2>
-            <div class="w-44 h-1.5 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-400 rounded-full mb-8 shadow-[0_0_10px_rgba(255,100,0,0.5)]"></div>
+            <div class="w-44 h-1.5 bg-gradient-to-r from-emerald-500 via-green-400 to-teal-400 rounded-full mb-8 shadow-[0_0_12px_rgba(0,255,150,0.35)]"></div>
             
             <form method="post" class="space-y-4">
                 {% csrf_token %}
                 <div class="grid grid-cols-1 md:grid-cols-6 gap-5 items-center">
                     <input type="text" name="name"
-                        class="md:col-span-2 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
-                               focus:ring-2 focus:ring-orange-500 focus:border-orange-400 outline-none transition duration-200 
-                               hover:border-orange-400/70 hover:shadow-[0_0_10px_rgba(255,150,50,0.3)]"
+                        class="md:col-span-2 bg-black/50 border border-emerald-800/40 rounded-xl p-3 text-emerald-100 placeholder-emerald-400 
+                               focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition duration-200"
                         placeholder="Full Name (Optional)">
 
                     <input type="email" name="email" required
-                        class="md:col-span-2 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
-                               focus:ring-2 focus:ring-orange-500 focus:border-orange-400 outline-none transition duration-200 
-                               hover:border-orange-400/70 hover:shadow-[0_0_10px_rgba(255,150,50,0.3)]"
+                        class="md:col-span-2 bg-black/50 border border-emerald-800/40 rounded-xl p-3 text-emerald-100 placeholder-emerald-400 
+                               focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition duration-200"
                         placeholder="target@example.com">
 
-                    <!-- --- إضافة جديدة: حقل Telegram ID --- -->
+                    <!-- Telegram ID -->
                     <input type="text" name="telegram_id"
-                        class="md:col-span-1 bg-gray-900/80 border border-gray-700/70 rounded-xl p-3 text-white placeholder-gray-500 
-                               focus:ring-2 focus:ring-orange-500 focus:border-orange-400 outline-none transition duration-200 
-                               hover:border-orange-400/70 hover:shadow-[0_0_10px_rgba(255,150,50,0.3)]"
+                        class="md:col-span-1 bg-black/50 border border-emerald-800/40 rounded-xl p-3 text-emerald-100 placeholder-emerald-400 
+                               focus:ring-2 focus:ring-emerald-500 focus:border-emerald-400 outline-none transition duration-200"
                         placeholder="Telegram ID (Optional)">
                     
                     <button type="submit"
-                        class="md:col-span-1 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-500 
-                               hover:from-red-700 hover:via-orange-700 hover:to-yellow-600 text-white font-semibold py-3 px-6 
-                               rounded-xl shadow-lg shadow-red-900/40 transform hover:scale-[1.03] active:scale-95 
+                        class="md:col-span-1 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 
+                               text-black font-semibold py-3 px-6 rounded-xl shadow-lg shadow-emerald-900/40 transform hover:scale-[1.03] active:scale-95 
                                transition duration-300 ease-in-out tracking-wide">
                         ➕ Add Target
                     </button>
@@ -54,42 +54,41 @@
     </div>
 
     <!-- Existing Targets List -->
-    <div class="relative card border border-gray-800 rounded-2xl p-6 bg-gradient-to-br from-gray-900 via-gray-950 to-black overflow-hidden shadow-[0_0_25px_rgba(0,200,255,0.1)]">
-        <div class="absolute inset-0 bg-gradient-to-tl from-cyan-700/10 via-transparent to-transparent blur-2xl"></div>
+    <div class="card border border-emerald-800/40 rounded-2xl p-6 bg-gradient-to-br from-black/60 to-[#00120a]/60 backdrop-blur-lg overflow-hidden shadow-[0_0_30px_rgba(0,255,150,0.06)]">
         <div class="relative z-10">
-            <h3 class="text-2xl font-bold text-white mb-6 flex items-center gap-3 tracking-wide">
-                <span class="text-cyan-400 drop-shadow-[0_0_6px_rgba(0,255,255,0.6)]">👥</span>
+            <h3 class="text-2xl font-bold text-emerald-300 mb-6 flex items-center gap-3 tracking-wide">
+                <span class="text-emerald-400">👥</span>
                 Existing Targets
             </h3>
 
-            <div class="overflow-hidden border border-gray-800/70 rounded-xl backdrop-blur-sm">
-                <table class="w-full text-sm text-left text-gray-300">
-                    <thead class="bg-gray-800/90 text-xs text-gray-400 uppercase tracking-wider">
-                        <tr class="divide-x divide-gray-700">
+            <div class="overflow-hidden border border-emerald-900/30 rounded-xl">
+                <table class="w-full text-sm text-left text-emerald-100">
+                    <thead class="bg-emerald-950/10 text-emerald-300 uppercase text-xs tracking-wider">
+                        <tr class="divide-x divide-emerald-900/20">
                             <th class="px-5 py-3">Name</th>
                             <th class="px-5 py-3">Email</th>
-                            <th class="px-5 py-3">Telegram ID</th> <!-- عمود جديد -->
+                            <th class="px-5 py-3">Telegram ID</th>
                             <th class="px-5 py-3">Added At</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-800/70">
+                    <tbody class="divide-y divide-emerald-900/25">
                         {% for target in targets %}
-                        <tr class="hover:bg-gray-800/60 hover:shadow-[0_0_10px_rgba(0,200,255,0.2)] transition duration-200">
-                            <td class="px-5 py-3 font-semibold text-gray-200">{{ target.name|default:"N/A" }}</td>
-                            <td class="px-5 py-3 text-cyan-400 font-mono">{{ target.email }}</td>
-                            <td class="px-5 py-3 text-blue-400 font-mono flex items-center gap-2">
+                        <tr class="hover:bg-emerald-900/5 hover:shadow-[0_0_12px_rgba(0,255,150,0.04)] transition duration-200">
+                            <td class="px-5 py-3 font-semibold text-emerald-200">{{ target.name|default:"N/A" }}</td>
+                            <td class="px-5 py-3 text-emerald-300 font-mono">{{ target.email }}</td>
+                            <td class="px-5 py-3 font-mono flex items-center gap-2 text-emerald-200">
                                 {% if target.telegram_user_id %}
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M22,3.2l-2.3,10.9c-0.1,0.6-0.5,0.7-1,0.4l-3.5-2.6l-1.7,1.6c-0.2,0.2-0.3,0.3-0.6,0.3c-0.1,0-0.2,0-0.3-0.1l0.3-3.6l6.8-6.1c0.3-0.2-0.1-0.4-0.4-0.2l-8.4,5.3l-3.4-1.1c-0.6-0.2-0.6-0.6,0.1-0.9L21,2.3C21.6,2,22.1,2.3,22,3.2z M10.4,14.6l9.3,6.8c0.6,0.3,1,0.1,1.1-0.5l3-14.1c0.2-0.8-0.5-1.2-1.2-0.9L2,11.8c-0.8,0.3-0.8,0.8-0.1,1l5.4,1.7L10.4,14.6z"/></svg>
+                                    <svg class="w-4 h-4 text-emerald-300" fill="currentColor" viewBox="0 0 24 24"><path d="M22,3.2l-2.3,10.9c-0.1,0.6-0.5,0.7-1,0.4l-3.5-2.6l-1.7,1.6c-0.2,0.2-0.3,0.3-0.6,0.3c-0.1,0-0.2,0-0.3-0.1l0.3-3.6l6.8-6.1c0.3-0.2-0.1-0.4-0.4-0.2l-8.4,5.3l-3.4-1.1c-0.6-0.2-0.6-0.6,0.1-0.9L21,2.3C21.6,2,22.1,2.3,22,3.2z M10.4,14.6l9.3,6.8c0.6,0.3,1,0.1,1.1-0.5l3-14.1c0.2-0.8-0.5-1.2-1.2-0.9L2,11.8c-0.8,0.3-0.8,0.8-0.1,1l5.4,1.7L10.4,14.6z"/></svg>
                                     {{ target.telegram_user_id }}
                                 {% else %}
-                                    <span class="text-gray-600">—</span>
+                                    <span class="text-emerald-600">—</span>
                                 {% endif %}
                             </td>
-                            <td class="px-5 py-3 whitespace-nowrap text-gray-400">{{ target.created_at|date:"Y-m-d H:i" }}</td>
+                            <td class="px-5 py-3 whitespace-nowrap text-emerald-300">{{ target.created_at|date:"Y-m-d H:i" }}</td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="text-center py-8 text-gray-600 italic">No targets added yet.</td>
+                            <td colspan="4" class="text-center py-8 text-emerald-600 italic">No targets added yet.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -97,5 +96,87 @@
             </div>
         </div>
     </div>
+
+  </div> <!-- /.space-y-10 -->
+
+  <!-- ========== Matrix Rain + Waves + Particles (same script used in Scanner/Dashboard) ========== -->
+  <script>
+  // Canvas setup
+  const rainCanvas = document.getElementById('matrixRain');
+  const wavesCanvas = document.getElementById('cyberWaves');
+  const rCtx = rainCanvas.getContext('2d');
+  const wCtx = wavesCanvas.getContext('2d');
+
+  let W, H, columns, drops = [], particles = [], t = 0;
+  function onResize() {
+    W = rainCanvas.width = wavesCanvas.width = window.innerWidth;
+    H = rainCanvas.height = wavesCanvas.height = window.innerHeight;
+    const fontSize = Math.max(12, Math.floor(W / 80));
+    columns = Math.floor(W / fontSize);
+    drops = Array(columns).fill(1);
+    particles = Array.from({length: Math.floor(W/30)}, () => ({
+      x: Math.random()*W,
+      y: Math.random()*H,
+      r: Math.random()*2+0.5,
+      s: Math.random()*0.4+0.1
+    }));
+    rCtx.font = `${fontSize}px monospace`;
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  function drawRain() {
+    rCtx.fillStyle = 'rgba(0,0,0,0.06)';
+    rCtx.fillRect(0,0,W,H);
+
+    rCtx.fillStyle = 'rgba(0,255,150,0.32)';
+    for (let i=0;i<drops.length;i++){
+      const char = Math.random() > 0.5 ? '0' : '1';
+      const x = i * (W / columns);
+      const y = drops[i] * (parseInt(rCtx.font) || 14);
+      rCtx.fillText(char, x, y);
+      if (y > H && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+
+  function drawWavesAndParticles() {
+    wCtx.clearRect(0,0,W,H);
+    wCtx.lineWidth = 1.2;
+    for (let i=0;i<3;i++){
+      wCtx.beginPath();
+      wCtx.strokeStyle = `rgba(0,255,150,${0.06 + i*0.02})`;
+      for (let x=0;x<W;x+=8){
+        const y = H/2 + Math.sin(x*0.004 + t/30 + i) * (40 + i*15);
+        if (x===0) wCtx.moveTo(x,y); else wCtx.lineTo(x,y);
+      }
+      wCtx.stroke();
+    }
+    particles.forEach(p => {
+      wCtx.beginPath();
+      wCtx.fillStyle = 'rgba(0,255,150,0.08)';
+      wCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      wCtx.fill();
+      p.y += p.s;
+      if (p.y > H) p.y = -10;
+    });
+    t += 0.7;
+  }
+
+  // animate
+  function animate() {
+    drawRain();
+    drawWavesAndParticles();
+    requestAnimationFrame(animate);
+  }
+  animate();
+  </script>
+
+  <style>
+    /* small visual helpers to match theme */
+    .card { /* fallback for older pages using .card class */ }
+    .animate-fadeIn { opacity: 1; transform: none; transition: none; } /* base already handled elsewhere */
+  </style>
+
 </div>
 {% endblock %}

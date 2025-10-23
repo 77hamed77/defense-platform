@@ -1,0 +1,231 @@
+{% extends "core/base.html" %}
+{% block title %}APK Analyzer{% endblock %}
+
+{% block content %}
+<div class="relative overflow-hidden min-h-screen">
+
+    <!-- ===== CYBER BACKGROUND ===== -->
+    <canvas id="gear3D" class="fixed inset-0 w-full h-full -z-50 pointer-events-none"></canvas>
+    <canvas id="pulseWave" class="fixed inset-0 w-full h-full -z-40 pointer-events-none"></canvas>
+    <div class="fixed inset-0 bg-black/90 -z-30"></div>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="relative z-10 space-y-10 p-6">
+
+        <!-- 🚀 Upload & Static Analysis Section -->
+        <div class="relative border border-green-700/50 rounded-2xl shadow-xl p-8 bg-black/10 backdrop-blur-md opacity-80 fade-up">
+            <h2 class="text-3xl font-bold text-green-400 mb-3 flex items-center gap-3 tracking-wide">
+                🔬 APK Static Analyzer
+            </h2>
+            <p class="text-gray-300 mb-6">Upload an Android APK file to perform static and dynamic analysis in real-time.</p>
+
+            <form method="post" enctype="multipart/form-data" class="space-y-6">
+                {% csrf_token %}
+                <!-- File Input -->
+                <div class="border-2 border-dashed border-green-700 rounded-2xl p-10 text-center transition hover:border-green-400/70 hover:shadow-[0_0_25px_rgba(0,255,100,0.25)] bg-black/30 backdrop-blur-sm">
+                    <input type="file" name="apk_file" required
+                        class="block w-full text-sm text-gray-300 cursor-pointer
+                               file:mr-4 file:py-2 file:px-5 file:rounded-xl
+                               file:border-0 file:text-sm file:font-semibold
+                               file:bg-gradient-to-r file:from-green-600 file:to-lime-500
+                               hover:file:from-green-700 hover:file:to-lime-600
+                               file:text-white transition-all duration-300" />
+                    <p class="text-gray-500 mt-4 text-sm italic">Supported format: .apk</p>
+                </div>
+
+                <!-- Fallback Activity -->
+                <div>
+                    <label for="fallback_activity" class="block text-sm font-medium text-gray-300 mb-1">
+                        Fallback Activity (Optional)
+                    </label>
+                    <input type="text" name="fallback_activity" id="fallback_activity"
+                           placeholder=".MainActivity"
+                           class="block w-full rounded-lg bg-black/50 border border-green-700 text-green-200 
+                                  shadow-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 sm:text-sm px-3 py-2">
+                    <p class="text-xs text-gray-500 mt-1">
+                        Used if monkey fails. Example: <code>.MainActivity</code>
+                    </p>
+                </div>
+
+                <!-- Upload Button -->
+                <div class="flex justify-end">
+                    <button type="submit"
+                        class="bg-gradient-to-r from-green-600 via-lime-500 to-green-500 
+                               hover:from-green-700 hover:via-lime-600 hover:to-green-600 
+                               text-white font-semibold py-3 px-8 rounded-xl 
+                               shadow-lg shadow-green-900/40 transform hover:scale-[1.03] active:scale-95 
+                               transition duration-300 ease-in-out tracking-wide flex items-center gap-2">
+                        📁 Upload & Analyze
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 📜 Analysis History Table -->
+        <div class="relative border border-green-700/50 rounded-2xl p-6 bg-black/20 backdrop-blur-md opacity-90 fade-up">
+            <h3 class="text-2xl font-bold text-green-400 mb-6 flex items-center gap-3 tracking-wide">
+                📜 Analysis History
+            </h3>
+
+            <div class="overflow-hidden border border-green-700/40 rounded-xl backdrop-blur-sm">
+                <table class="w-full text-sm text-left text-green-200">
+                    <thead class="bg-black/50 text-xs text-green-300 uppercase tracking-wider">
+                        <tr class="divide-x divide-green-700/50">
+                            <th class="px-5 py-3">Filename</th>
+                            <th class="px-5 py-3">Package Name</th>
+                            <th class="px-5 py-3">Fallback Activity</th>
+                            <th class="px-5 py-3">Status</th>
+                            <th class="px-5 py-3">Analysis Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-green-800/40">
+                        {% for analysis in analyses %}
+                        <tr class="hover:bg-green-900/20 transition">
+                            <td class="px-5 py-3 font-mono text-green-400">
+                                <a href="{% url 'apk_analysis_detail' analysis.id %}" class="text-green-400 hover:underline">
+                                    {{ analysis.filename }}
+                                </a>
+                            </td>
+                            <td class="px-5 py-3">{{ analysis.package_name|default:"-" }}</td>
+                            <td class="px-5 py-3 text-gray-400">{{ analysis.fallback_activity|default:"-" }}</td>
+                            <td class="px-5 py-3">
+                                <span class="font-semibold px-3 py-1 rounded-full text-xs tracking-wide
+                                    {% if analysis.status == 'COMPLETED' %} bg-green-500/20 text-green-300
+                                    {% elif analysis.status == 'IN_PROGRESS' %} bg-yellow-500/20 text-yellow-300 animate-pulse
+                                    {% else %} bg-gray-600/40 text-gray-400 {% endif %}">
+                                    {{ analysis.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 text-gray-400">{{ analysis.created_at|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-10 text-green-500 italic">
+                                🚫 No APKs have been analyzed yet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ====== 3D GEARS + PULSE EFFECT ====== -->
+<script>
+// ========== GEARS 3D ==========
+const canvas = document.getElementById('gear3D');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+class Gear3D {
+    constructor(x, y, radius, teeth, speed, depth){
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.teeth = teeth;
+        this.angle = 0;
+        this.speed = speed;
+        this.depth = depth;
+    }
+    draw(){
+        ctx.save();
+        let scale = 1 + this.depth*0.001;
+        ctx.translate(this.x, this.y);
+        ctx.scale(scale, scale);
+        ctx.rotate(this.angle);
+        ctx.strokeStyle = 'rgba(0, 255, 119, 0.72)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for(let i=0;i<this.teeth;i++){
+            let theta = (i/this.teeth)*2*Math.PI;
+            let x1 = this.radius*Math.cos(theta);
+            let y1 = this.radius*Math.sin(theta);
+            let x2 = (this.radius+6)*Math.cos(theta);
+            let y2 = (this.radius+6)*Math.sin(theta);
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        }
+        ctx.stroke();
+        ctx.restore();
+        this.angle += this.speed;
+    }
+}
+
+const gears = [];
+for(let i=0;i<30;i++){
+    gears.push(new Gear3D(
+        Math.random()*canvas.width,
+        Math.random()*canvas.height,
+        Math.random()*30 + 20,
+        Math.floor(Math.random()*8+6),
+        (Math.random()*0.02 + 0.005)*(Math.random()<0.5?1:-1),
+        Math.random()*100
+    ));
+}
+
+function drawGears(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    gears.forEach(g=>g.draw());
+    requestAnimationFrame(drawGears);
+}
+drawGears();
+
+window.addEventListener('resize',()=>{
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
+
+// ========== PULSE WAVE ==========
+const pulseCanvas = document.getElementById('pulseWave');
+const pctx = pulseCanvas.getContext('2d');
+pulseCanvas.width = window.innerWidth;
+pulseCanvas.height = window.innerHeight;
+
+let pulseOffset = 0;
+function drawPulse(){
+    pctx.clearRect(0,0,pulseCanvas.width,pulseCanvas.height);
+    pctx.strokeStyle = '#00ff77';
+    pctx.lineWidth = 2;
+    pctx.shadowColor = '#00ff77';
+    pctx.shadowBlur = 15;
+    pctx.beginPath();
+    for(let x=0;x<pulseCanvas.width;x++){
+        let y = pulseCanvas.height/2 + Math.sin((x + pulseOffset)*0.02)*50 + Math.sin((x + pulseOffset)*0.05)*20;
+        if(x===0) pctx.moveTo(x,y);
+        else pctx.lineTo(x,y);
+    }
+    pctx.stroke();
+    pulseOffset += 3;
+    requestAnimationFrame(drawPulse);
+}
+drawPulse();
+
+window.addEventListener('resize',()=>{
+    pulseCanvas.width = window.innerWidth;
+    pulseCanvas.height = window.innerHeight;
+});
+
+// ========== FADE-UP FIX ==========
+const observer = new IntersectionObserver(entries=>{
+    entries.forEach(entry=>{
+        if(entry.isIntersecting){
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+        }
+    });
+},{ threshold:0.1 });
+document.querySelectorAll('.fade-up').forEach(el=>{
+    observer.observe(el);
+});
+</script>
+
+<style>
+.fade-up { opacity:0; transform:translateY(10px); transition:all 0.8s ease-out; }
+.fade-up.visible { opacity:1; transform:translateY(0); }
+</style>
+
+{% endblock %}

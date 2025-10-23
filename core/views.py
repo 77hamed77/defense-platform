@@ -65,30 +65,61 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from .models import PhishingCampaign, EmailTemplate, LandingPage, PhishingTarget
 from .tasks import launch_phishing_campaign # <-- استيراد المهمة
+from .models import Alert, IndicatorOfCompromise, Scan, Vulnerability
+from network_mapper.models import NetworkDevice
+from apk_analyzer.models import APKAnalysis
+from cloud_scanner.models import CloudScan
+from .models import Alert, IndicatorOfCompromise, Scan, Vulnerability, PhishingCampaign
+from network_mapper.models import NetworkDevice
+from apk_analyzer.models import APKAnalysis
+from cloud_scanner.models import CloudScan
+from django.shortcuts import render
+from django.db.models import Count, Q
+from .models import Alert, Vulnerability, Scan, PhishingCampaign
+from network_mapper.models import NetworkDevice
+from apk_analyzer.models import APKAnalysis
+from cloud_scanner.models import CloudScan
 
 def dashboard(request):
-    latest_alerts = Alert.objects.order_by('-timestamp')[:10]
-    
-    total_alerts = Alert.objects.count()
-    total_assets = Asset.objects.count()
-    total_iocs = IndicatorOfCompromise.objects.count()
+    """
+    تجمع البيانات من جميع وحدات المنصة لعرضها في لوحة التحكم الرئيسية.
+    """
+    # --- قسم التنبيهات (Alerts) ---
+    latest_alerts = Alert.objects.order_by('-timestamp')[:5]
+    critical_alerts_count = Alert.objects.filter(severity='CRITICAL', status='NEW').count()
 
-    # --- إضافة جديدة: تجهيز بيانات الرسم البياني ---
-    # تجميع التنبيهات حسب الخطورة وحساب عدد كل منها
-    severity_counts_query = Alert.objects.values('severity').annotate(count=Count('severity')).order_by('severity')
-    
-    # استخراج العناوين والبيانات من نتيجة الاستعلام
-    severity_labels = [item['severity'] for item in severity_counts_query]
-    severity_data = [item['count'] for item in severity_counts_query]
-    # ----------------------------------------------
+    # --- قسم الشبكة (Network) ---
+    total_devices = NetworkDevice.objects.count()
+    latest_devices = NetworkDevice.objects.order_by('-last_seen')[:5]
 
+    # --- قسم الفحص (Scanning) ---
+    latest_scans = Scan.objects.order_by('-created_at')[:5]
+    total_vulnerabilities = Vulnerability.objects.count()
+
+    # --- قسم تحليل APK ---
+    latest_apk_analyses = APKAnalysis.objects.order_by('-created_at')[:5]
+
+    # --- قسم السحابة (Cloud) ---
+    latest_cloud_scans = CloudScan.objects.order_by('-created_at')[:5]
+    
+    # --- قسم التصيد الاحتيالي (Phishing) ---
+    # نستخدم annotate لإضافة عدد النقرات والبيانات المدخلة لكل حملة بكفاءة
+    latest_phishing_campaigns = PhishingCampaign.objects.annotate(
+        clicked_count=Count('results', filter=Q(results__is_clicked=True)),
+        submitted_count=Count('results', filter=Q(results__submitted_data=True))
+    ).order_by('-created_at')[:5]
+
+    # --- تجميع كل البيانات لتمريرها إلى القالب ---
     context = {
         'latest_alerts': latest_alerts,
-        'total_alerts': total_alerts,
-        'total_assets': total_assets,
-        'total_iocs': total_iocs,
-        'severity_labels': severity_labels,  # <-- تمرير العناوين
-        'severity_data': severity_data,      # <-- تمرير البيانات
+        'critical_alerts_count': critical_alerts_count,
+        'total_devices': total_devices,
+        'latest_devices': latest_devices,
+        'latest_scans': latest_scans,
+        'total_vulnerabilities': total_vulnerabilities,
+        'latest_apk_analyses': latest_apk_analyses,
+        'latest_cloud_scans': latest_cloud_scans,
+        'latest_phishing_campaigns': latest_phishing_campaigns,
     }
     
     return render(request, 'core/dashboard.html', context)

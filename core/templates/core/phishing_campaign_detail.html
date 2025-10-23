@@ -1,274 +1,346 @@
-<!-- core/templates/core/phishing_campaign_detail.html -->
 {% extends "core/base.html" %}
 
 {% block title %}Campaign Report: {{ campaign.name }}{% endblock %}
 
 {% block content %}
-<div class="space-y-10 animate-fadeIn">
-    <!-- Header -->
-    <div class="border-b border-gray-800 pb-4">
-        <a href="{% url 'phishing_campaign_list' %}" 
-           class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-           ← Back to Campaigns
-        </a>
-        <h1 class="text-3xl md:text-4xl font-extrabold text-white mt-2 tracking-tight">
-            Campaign Report: <span class="text-cyan-400">{{ campaign.name }}</span>
-        </h1>
-        <p class="text-gray-400 mt-1 text-sm uppercase tracking-wider">
-            Status: <span class="text-gray-300 font-semibold">{{ campaign.get_status_display }}</span>
-        </p>
-    </div>
+<div class="relative overflow-hidden min-h-screen">
 
+  <!-- ===== CYBER GREEN BACKGROUND ===== -->
+  <canvas id="cyber-grid" class="fixed inset-0 w-full h-full -z-50"></canvas>
+  <div class="fixed inset-0 -z-40 bg-gradient-to-b from-black/85 via-[#00110a]/95 to-[#001b13]/98 backdrop-blur-sm"></div>
 
-<!-- --- إضافة جديدة: بطاقة درجة مخاطر الحملة --- -->
-<div class="card border border-{{ risk_color }}-500/30 rounded-xl shadow-lg p-6 bg-{{ risk_color }}-900/20 flex items-center justify-between">
-    <div class="flex items-center gap-6">
-        <div class="flex-shrink-0 w-24 h-24 rounded-full border-4 border-{{ risk_color }}-400 bg-gray-800 flex items-center justify-center">
-            <span class="text-6xl font-extrabold text-{{ risk_color }}-300">{{ risk_grade }}</span>
-        </div>
+  <!-- ===== MOUSE GLOW TRAIL ===== -->
+  <div id="mouse-glow" class="fixed w-32 h-32 bg-emerald-400/25 rounded-full blur-3xl -z-30 pointer-events-none"></div>
+
+  <!-- ===== PAGE CONTENT ===== -->
+  <div class="relative z-10 space-y-8 p-6 max-w-7xl mx-auto animate-fadeIn">
+
+    <!-- Header Section - Enhanced -->
+    <div class="border-b-2 border-emerald-600/40 pb-6">
+      <div class="flex items-start justify-between mb-4">
         <div>
-            <h3 class="text-xl font-bold text-white">Overall Campaign Risk Grade</h3>
-            <p class="text-lg font-semibold text-{{ risk_color }}-300">{{ risk_description }}</p>
+          <a href="{% url 'phishing_campaign_list' %}" class="inline-flex items-center text-sm text-emerald-400 hover:text-emerald-300 transition-colors font-semibold gap-2">
+            <span>←</span> Back to Campaigns
+          </a>
+          <h1 class="text-5xl md:text-6xl font-black text-white mt-4 tracking-tighter">
+            Campaign Report
+          </h1>
+          <p class="text-2xl font-bold text-emerald-400 mt-2">{{ campaign.name }}</p>
         </div>
-    </div>
-    <div class="text-right">
-        <p class="text-sm text-gray-400">Based on user engagement</p>
-        <p class="text-xs text-gray-500 mt-1">(Click Rate: {{ click_rate|floatformat:1 }}%, Submission Rate: {{ submission_rate|floatformat:1 }}%)</p>
-    </div>
-</div>
-<!-- ------------------------------------------- -->
-
-
-    <!-- Risk Executive Summary Card -->
-    <div class="card border border-yellow-500/30 rounded-xl shadow-lg p-6 bg-yellow-500/10">
-        <h3 class="text-xl font-bold text-yellow-300 mb-3 flex items-center gap-3">
-            <span class="animate-pulse">⚠️</span>
-            Risk Executive Summary
-        </h3>
-        <p class="text-gray-300 leading-relaxed">
-            The phishing simulation campaign, '<strong>{{ campaign.name }}</strong>', revealed that 
-            <strong>{{ click_rate|floatformat:1 }}%</strong> of targeted employees clicked on a simulated malicious link, 
-            and a critical <strong>{{ submission_rate|floatformat:1 }}%</strong> proceeded to submit their credentials.
-            <br><br>
-            This outcome highlights a <strong>significant risk</strong> of potential account compromise, data breaches, and unauthorized access to corporate systems. The collected evidence indicates these actions occurred within the corporate environment, underscoring the need for immediate intervention and enhanced security awareness training.
-        </p>
-    </div>
-    
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-white">
-        <div class="bg-gradient-to-b from-gray-800 to-gray-900 border border-gray-700 p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center">
-            <h4 class="text-sm font-medium text-gray-400">Sent</h4>
-            <p class="text-4xl font-extrabold mt-2 text-cyan-400">{{ sent_count }} <span class="text-gray-500 text-lg">/ {{ total_targets }}</span></p>
+        <div class="bg-emerald-900/30 border-2 border-emerald-500/50 rounded-lg px-6 py-4 text-center backdrop-blur-md">
+          <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest">Status</p>
+          <p class="text-xl font-bold text-emerald-400 mt-1">{{ campaign.get_status_display }}</p>
         </div>
-        <div class="bg-gradient-to-b from-gray-800 to-gray-900 border border-gray-700 p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center">
-            <h4 class="text-sm font-medium text-gray-400">Opened</h4>
-            <p class="text-4xl font-extrabold mt-2 text-emerald-400">{{ opened_count }}</p>
-            <p class="text-xs text-gray-500 mt-1">({{ open_rate|floatformat:1 }}%)</p>
-        </div>
-        <div class="bg-gradient-to-b from-gray-800 to-gray-900 border border-gray-700 p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center">
-            <h4 class="text-sm font-medium text-gray-400">Clicked</h4>
-            <p class="text-4xl font-extrabold mt-2 text-yellow-400">{{ clicked_count }}</p>
-            <p class="text-xs text-gray-500 mt-1">({{ click_rate|floatformat:1 }}%)</p>
-        </div>
-        <div class="bg-gradient-to-b from-red-900/60 to-gray-900 border border-red-700 p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 text-center">
-            <h4 class="text-sm font-medium text-red-300">Data Submitted</h4>
-            <p class="text-4xl font-extrabold mt-2 text-red-400">{{ submitted_count }}</p>
-            <p class="text-xs text-red-500 mt-1">({{ submission_rate|floatformat:1 }}%)</p>
-        </div>
+      </div>
     </div>
 
-    <!-- User Behavior Analysis Card -->
+    <!-- Risk Grade Card - Premium -->
+    <div class="relative rounded-2xl p-8 bg-gradient-to-br from-emerald-900/20 via-[#02120b]/80 to-[#001b13]/90 border-2 border-emerald-500/40 backdrop-blur-md shadow-[0_0_60px_rgba(0,255,150,0.1)] hover:shadow-[0_0_80px_rgba(0,255,180,0.2)] transition-all duration-300">
+      <div class="absolute inset-0 bg-gradient-to-br from-emerald-400/10 via-transparent to-transparent blur-3xl rounded-2xl"></div>
+      <div class="relative z-10">
+        <h2 class="text-sm font-mono text-emerald-300 uppercase tracking-widest mb-6 opacity-80">[RISK_ASSESSMENT]</h2>
+        <div class="flex items-center justify-between gap-8">
+          <div class="flex items-center gap-6">
+            <div class="flex-shrink-0 w-40 h-40 rounded-full border-4 border-emerald-400 bg-emerald-950/60 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,150,0.3)]">
+              <span class="text-7xl font-black text-emerald-300">{{ risk_grade }}</span>
+            </div>
+            <div>
+              <h3 class="text-2xl font-bold text-white">Overall Risk Grade</h3>
+              <p class="text-lg font-bold text-emerald-400 mt-2">{{ risk_description }}</p>
+              <p class="text-xs text-emerald-300/60 mt-3 font-mono">• Click Rate: {{ click_rate|floatformat:1 }}% | Submission Rate: {{ submission_rate|floatformat:1 }}%</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Executive Summary - Dark Terminal Style -->
+    <div class="border-2 border-emerald-600/30 rounded-xl shadow-lg p-8 bg-[#01150c]/95 backdrop-blur-md">
+      <h3 class="text-lg font-mono text-emerald-300 mb-4 uppercase tracking-wider flex items-center gap-3">
+        <span class="text-emerald-400">⚠</span> [RISK_EXECUTIVE_SUMMARY]
+      </h3>
+      <div class="bg-black/50 border border-emerald-600/30 rounded-lg p-6 font-mono text-sm text-emerald-200 leading-relaxed space-y-3">
+        <p>The phishing simulation campaign, "<span class="text-emerald-400 font-bold">{{ campaign.name }}</span>" revealed critical vulnerabilities:</p>
+        <div class="ml-4 space-y-2 border-l-2 border-emerald-600/50 pl-4">
+          <p>→ <span class="text-yellow-400 font-semibold">{{ click_rate|floatformat:1 }}%</span> of targets clicked malicious link</p>
+          <p>→ <span class="text-red-400 font-semibold">{{ submission_rate|floatformat:1 }}%</span> submitted credentials</p>
+          <p>→ <span class="text-red-500">CRITICAL</span> risk of account compromise & data breach</p>
+        </div>
+        <p class="text-xs text-emerald-300/50 mt-4">[IMMEDIATE INTERVENTION REQUIRED]</p>
+      </div>
+    </div>
+
+    <!-- Stats Grid - Enhanced -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <!-- Sent -->
+      <div class="stat-card-premium">
+        <p class="text-xs font-mono text-emerald-300 uppercase tracking-wider opacity-70">[SENT]</p>
+        <p class="text-4xl font-black text-emerald-400 mt-3">{{ sent_count }}<span class="text-lg text-emerald-600">/{{ total_targets }}</span></p>
+      </div>
+      <!-- Opened -->
+      <div class="stat-card-premium">
+        <p class="text-xs font-mono text-emerald-300 uppercase tracking-wider opacity-70">[OPENED]</p>
+        <p class="text-4xl font-black text-emerald-400 mt-3">{{ opened_count }}</p>
+        <p class="text-xs text-emerald-500 mt-2 font-mono">{{ open_rate|floatformat:1 }}%</p>
+      </div>
+      <!-- Clicked -->
+      <div class="stat-card-premium border-yellow-600/40">
+        <p class="text-xs font-mono text-yellow-300 uppercase tracking-wider opacity-70">[CLICKED]</p>
+        <p class="text-4xl font-black text-yellow-400 mt-3">{{ clicked_count }}</p>
+        <p class="text-xs text-yellow-500 mt-2 font-mono">{{ click_rate|floatformat:1 }}%</p>
+      </div>
+      <!-- Submitted -->
+      <div class="stat-card-premium border-red-600/40">
+        <p class="text-xs font-mono text-red-300 uppercase tracking-wider opacity-70">[SUBMITTED]</p>
+        <p class="text-4xl font-black text-red-400 mt-3">{{ submitted_count }}</p>
+        <p class="text-xs text-red-500 mt-2 font-mono">{{ submission_rate|floatformat:1 }}%</p>
+      </div>
+    </div>
+
+    <!-- User Behavior Analysis -->
     {% if average_time_to_click is not None %}
-    <div class="card border border-gray-700 rounded-xl shadow-lg p-6 bg-gray-900">
-        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
-            <span class="text-purple-400">🧠</span>
-            User Behavior Analysis
-        </h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-300">
-            <div>
-                <h4 class="font-semibold">Average Time-to-Click</h4>
-                <p class="text-3xl font-bold text-purple-300 mt-1">{{ average_time_to_click }} <span class="text-lg font-medium">seconds</span></p>
-                <p class="text-xs text-gray-500 mt-1">The average time between receiving the email and clicking the link.</p>
-            </div>
-            {% if fastest_click_result %}
-            <div>
-                <h4 class="font-semibold">Fastest Responder</h4>
-                <p class="text-2xl font-bold text-purple-300 mt-1">{{ fastest_click_result.target.email }}</p>
-                <p class="text-sm text-gray-400">Clicked in just <strong>{{ fastest_click_result.time_to_click.total_seconds|floatformat:0 }} seconds</strong>.</p>
-            </div>
-            {% endif %}
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="border-2 border-emerald-600/30 rounded-xl p-8 bg-[#01150c]/80 backdrop-blur-md">
+        <h4 class="text-sm font-mono text-emerald-300 uppercase tracking-wider mb-4">[AVG_TIME_TO_CLICK]</h4>
+        <p class="text-5xl font-black text-emerald-300">{{ average_time_to_click }}<span class="text-lg font-semibold text-emerald-600 ml-2">sec</span></p>
+        <p class="text-xs text-emerald-500/70 mt-3 font-mono">Average time between email receipt and link click</p>
+      </div>
+      {% if fastest_click_result %}
+      <div class="border-2 border-emerald-600/30 rounded-xl p-8 bg-[#01150c]/80 backdrop-blur-md">
+        <h4 class="text-sm font-mono text-emerald-300 uppercase tracking-wider mb-4">[FASTEST_RESPONDER]</h4>
+        <p class="text-lg font-mono text-white break-all mb-3">{{ fastest_click_result.target.email }}</p>
+        <p class="text-emerald-400 font-bold text-sm">Clicked in <span class="text-red-400">{{ fastest_click_result.time_to_click.total_seconds|floatformat:0 }}s</span></p>
+      </div>
+      {% endif %}
     </div>
     {% endif %}
 
-
-<!-- --- إضافة جديدة: بطاقة الأهداف الأكثر عرضة للخطر --- -->
-{% if at_risk_results.exists %}
-<div class="card border border-red-500/30 rounded-xl shadow-lg p-6 bg-red-500/10">
-    <h3 class="text-xl font-bold text-red-300 mb-4 flex items-center gap-3">
-        <span class="animate-pulse">🚨</span>
-        Top At-Risk Targets
-    </h3>
-    <div class="overflow-hidden border border-red-800/50 rounded-lg">
-        <table class="w-full text-sm text-left text-gray-300">
-            <thead class="bg-red-900/40 text-xs text-red-200 uppercase tracking-wider">
-                <tr>
-                    <th class="px-4 py-3">Name</th>
-                    <th class="px-4 py-3">Email</th>
-                    <th class="px-4 py-3 text-center">Actions Taken</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-red-800/30">
-                {% for result in at_risk_results %}
-                <tr class="hover:bg-red-900/20">
-                    <td class="px-4 py-3 font-semibold">{{ result.target.name|default:"N/A" }}</td>
-                    <td class="px-4 py-3 font-mono">{{ result.target.email }}</td>
-                    <td class="px-4 py-3">
-                        <div class="flex items-center justify-center space-x-3 text-lg" title="Opened, Clicked, and Submitted Data">
-                            <span class="text-green-400">📬</span> <!-- Opened -->
-                            <span class="text-yellow-400">🖱️</span> <!-- Clicked -->
-                            <span class="text-red-400 font-bold">🔑</span> <!-- Submitted -->
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
+    <!-- Top At-Risk Targets -->
+    {% if at_risk_results.exists %}
+    <div class="border-2 border-red-600/40 rounded-xl p-8 bg-red-950/20 backdrop-blur-md">
+      <h3 class="text-lg font-mono text-red-300 mb-6 uppercase tracking-wider flex items-center gap-3">
+        <span class="animate-pulse text-red-500">●</span> [CRITICAL_TARGETS_AT_RISK]
+      </h3>
+      <div class="overflow-hidden border border-red-800/50 rounded-lg">
+        <table class="w-full text-sm text-left text-gray-300 font-mono">
+          <thead class="bg-red-950/60 text-xs text-red-300 uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-4">Name</th>
+              <th class="px-6 py-4">Email</th>
+              <th class="px-6 py-4 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-red-800/30">
+            {% for result in at_risk_results %}
+            <tr class="hover:bg-red-900/30 transition-all duration-300 border-l-4 border-red-600/50">
+              <td class="px-6 py-4 font-semibold text-red-200">{{ result.target.name|default:"N/A" }}</td>
+              <td class="px-6 py-4 text-red-300 break-all">{{ result.target.email }}</td>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-center space-x-3 text-lg">
+                  <span class="text-green-400">📬</span>
+                  <span class="text-yellow-400">🖱️</span>
+                  <span class="text-red-500 font-bold">🔑</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
-    </div>
-</div>
-{% endif %}
-<!-- -------------------------------------------------- -->
-
-
-    <!-- --- NEW: Geographic Distribution Map Card --- -->
-    {% if locations_data %}
-    <div class="card border border-gray-700 rounded-xl shadow-lg p-6 bg-gray-900">
-        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
-            <span class="text-blue-400">🌍</span>
-            Geographic Distribution of Clicks
-        </h3>
-        <!-- Map Container -->
-        <div id="map" class="w-full h-96 rounded-lg border border-gray-700 z-0"></div>
+      </div>
     </div>
     {% endif %}
-    <!-- --------------------------------------- -->
 
-    <!-- Results Table with Evidence -->
-    <div class="bg-gradient-to-b from-gray-900 to-gray-950 border border-gray-800 rounded-2xl p-8 shadow-lg transition-all duration-300 hover:shadow-xl">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-2xl font-bold text-white flex items-center gap-2">
-                🎯 Target Results & Evidence
-            </h3>
-        </div>
-        <div class="overflow-x-auto rounded-lg border border-gray-800">
-            <table class="w-full text-sm text-left text-gray-300">
-                <thead class="bg-gray-800/80 text-xs text-gray-400 uppercase tracking-wider">
-                    <tr>
-                        <th class="px-5 py-3 font-semibold">Target</th>
-                        <th class="px-5 py-3 text-center font-semibold">Sent</th>
-                        <th class="px-5 py-3 text-center font-semibold">Opened</th>
-                        <th class="px-5 py-3 text-center font-semibold">Clicked</th>
-                        <th class="px-5 py-3 text-center font-semibold">Data Submitted</th>
-                        <th class="px-5 py-3 text-center font-semibold">Captured Evidence</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-800">
-                    {% for result in results %}
-                    <tr class="hover:bg-gray-800/60 transition-colors duration-200">
-                        <td class="px-5 py-3 font-mono text-gray-200">{{ result.target.email }}</td>
-                        <td class="px-5 py-3 text-center">{% if result.is_sent %}✅{% else %}❌{% endif %}</td>
-                        <td class="px-5 py-3 text-center">{% if result.is_opened %}✅{% else %}❌{% endif %}</td>
-                        <td class="px-5 py-3 text-center">{% if result.is_clicked %}✅{% else %}❌{% endif %}</td>
-                        <td class="px-5 py-3 text-center">
-                            {% if result.submitted_data %}
-                                <span class="font-bold text-red-400 cursor-help" title="{{ result.captured_data }}">✅ YES</span>
-                            {% else %}
-                                <span class="text-gray-500">❌</span>
-                            {% endif %}
-                        </td>
-                        <td class="px-5 py-3">
-                            <div class="flex items-center justify-center space-x-3 text-lg">
-                                {% if result.captured_user_agent %}
-                                    <span title="{{ result.captured_user_agent }}" class="cursor-help text-gray-400 hover:text-gray-200 transition-colors">💻</span>
-                                {% endif %}
-                                {% if result.captured_geolocation.latitude %}
-                                    <a href="https://www.google.com/maps?q={{ result.captured_geolocation.latitude }},{{ result.captured_geolocation.longitude }}" 
-                                       target="_blank" title="View on Google Maps" 
-                                       class="text-blue-400 hover:text-blue-300 transition-colors">📍</a>
-                                {% endif %}
-                                {% if result.captured_image_path %}
-                                    <a href="{{ MEDIA_URL }}{{ result.captured_image_path }}" 
-                                       target="_blank" title="View Captured Image" 
-                                       class="text-purple-400 hover:text-purple-300 transition-colors">📸</a>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="6" class="text-center py-6 text-gray-500 italic">
-                            No results available for this campaign yet.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+    <!-- Geographic Distribution Map -->
+    {% if locations_data %}
+    <div class="border-2 border-emerald-600/30 rounded-xl p-8 bg-[#01150c]/80 backdrop-blur-md">
+      <h3 class="text-lg font-mono text-emerald-300 mb-6 uppercase tracking-wider flex items-center gap-3">
+        <span class="text-emerald-400">📍</span> [GEO_DISTRIBUTION]
+      </h3>
+      <div id="map" class="w-full h-96 rounded-lg border-2 border-emerald-600/40"></div>
     </div>
-</div>
+    {% endif %}
 
-
-<!-- --- إضافة جديدة: بطاقة التوصيات القابلة للتنفيذ --- -->
-<div class="card border border-gray-700 rounded-xl shadow-lg p-6 bg-gray-900">
-    <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
-        <span class="text-green-400">📋</span>
-        Actionable Recommendations
-    </h3>
-    <div class="prose prose-invert prose-sm max-w-none text-gray-300 space-y-4">
-        <p>Based on the results of this campaign, the following actions are recommended to mitigate risk and improve the organization's security posture:</p>
-        
-        <div class="border-l-4 border-red-500 pl-4 py-2 bg-red-900/20 rounded-r-lg">
-            <h4 class="font-bold text-red-300">1. Targeted Training (High Priority)</h4>
-            <p>Enroll all employees who submitted their credentials (listed in the "Top At-Risk Targets" section) into a mandatory, intensive security awareness and phishing training course. This should be completed within the next 30 days.</p>
-        </div>
-
-        <div class="border-l-4 border-yellow-500 pl-4 py-2 bg-yellow-900/20 rounded-r-lg">
-            <h4 class="font-bold text-yellow-300">2. General Awareness Campaign</h4>
-            <p>Distribute a company-wide email summarizing the general, anonymized results of this simulation. The communication should reinforce best practices for identifying phishing attempts and remind employees of the official procedure for reporting suspicious emails.</p>
-        </div>
-
-        <div class="border-l-4 border-blue-500 pl-4 py-2 bg-blue-900/20 rounded-r-lg">
-            <h4 class="font-bold text-blue-300">3. Technical Control Review</h4>
-            <p>Initiate a review of the current email security gateway configurations. Evaluate the feasibility of enabling advanced features such as ATP (Advanced Threat Protection), URL sandboxing, and attachment detonation to reduce the number of malicious emails reaching employee inboxes.</p>
-        </div>
+    <!-- Target Results Table -->
+    <div class="bg-[#011510]/90 border-2 border-emerald-600/30 rounded-2xl p-8 shadow-lg backdrop-blur-md overflow-hidden">
+      <h3 class="text-2xl font-mono text-white mb-6 uppercase tracking-wider">
+        <span class="text-emerald-400">[</span>TARGET_RESULTS<span class="text-emerald-400">]</span>
+      </h3>
+      <div class="overflow-x-auto rounded-lg border border-emerald-700/50">
+        <table class="w-full text-sm text-left text-gray-300 font-mono">
+          <thead class="bg-emerald-950/80 text-xs text-emerald-200 uppercase tracking-wider">
+            <tr>
+              <th class="px-6 py-4 font-semibold">Target</th>
+              <th class="px-6 py-4 text-center font-semibold">Sent</th>
+              <th class="px-6 py-4 text-center font-semibold">Opened</th>
+              <th class="px-6 py-4 text-center font-semibold">Clicked</th>
+              <th class="px-6 py-4 text-center font-semibold">Data Submitted</th>
+              <th class="px-6 py-4 text-center font-semibold">Evidence</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-800/50">
+            {% for result in results %}
+            <tr class="hover:bg-emerald-900/20 transition-colors duration-200 hover:border-l-4 hover:border-emerald-400">
+              <td class="px-6 py-4 text-gray-200 break-all">{{ result.target.email }}</td>
+              <td class="px-6 py-4 text-center text-emerald-400">{% if result.is_sent %}✔{% else %}✗{% endif %}</td>
+              <td class="px-6 py-4 text-center text-emerald-400">{% if result.is_opened %}✔{% else %}✗{% endif %}</td>
+              <td class="px-6 py-4 text-center text-yellow-400">{% if result.is_clicked %}✔{% else %}✗{% endif %}</td>
+              <td class="px-6 py-4 text-center">
+                {% if result.submitted_data %}
+                  <span class="font-bold text-red-400 cursor-help" title="{{ result.captured_data }}">✔ YES</span>
+                {% else %}
+                  <span class="text-gray-600">✗</span>
+                {% endif %}
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center justify-center space-x-2 text-lg">
+                  {% if result.captured_user_agent %}
+                    <span title="{{ result.captured_user_agent }}" class="cursor-help text-gray-400 hover:text-emerald-300 transition-colors">💻</span>
+                  {% endif %}
+                  {% if result.captured_geolocation.latitude %}
+                    <a href="https://www.google.com/maps?q={{ result.captured_geolocation.latitude }},{{ result.captured_geolocation.longitude }}" 
+                       target="_blank" class="text-emerald-400 hover:text-emerald-300 transition-colors">📍</a>
+                  {% endif %}
+                  {% if result.captured_image_path %}
+                    <a href="{{ MEDIA_URL }}{{ result.captured_image_path }}" 
+                       target="_blank" class="text-purple-400 hover:text-purple-300 transition-colors">📸</a>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="text-center py-8 text-gray-600 italic font-mono">
+                [NO_RESULTS_AVAILABLE]
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-</div>
-<!-- ---------------------------------------------------- -->
 
-<!-- Add the locations data to a script tag -->
-{{ locations_data|json_script:"locations-data" }}
+    <!-- Actionable Recommendations -->
+    <div class="border-2 border-emerald-600/30 rounded-xl p-8 bg-[#01150c]/80 backdrop-blur-md">
+      <h3 class="text-lg font-mono text-emerald-300 mb-6 uppercase tracking-wider flex items-center gap-3">
+        <span class="text-emerald-400">→</span> [RECOMMENDATIONS]
+      </h3>
+      <div class="space-y-5">
+        <div class="border-l-4 border-red-500 pl-6 py-4 bg-red-950/30 rounded-r-lg">
+          <h4 class="font-bold text-red-300 text-sm uppercase tracking-wider mb-2">1. Targeted Training [HIGH_PRIORITY]</h4>
+          <p class="text-gray-300 text-sm font-mono">Enroll all employees who submitted credentials into mandatory intensive security awareness and phishing training. Complete within 30 days.</p>
+        </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const locations = JSON.parse(document.getElementById('locations-data').textContent);
+        <div class="border-l-4 border-yellow-500 pl-6 py-4 bg-yellow-950/30 rounded-r-lg">
+          <h4 class="font-bold text-yellow-300 text-sm uppercase tracking-wider mb-2">2. General Awareness Campaign</h4>
+          <p class="text-gray-300 text-sm font-mono">Distribute company-wide email with anonymized simulation results. Reinforce phishing identification best practices and reporting procedures.</p>
+        </div>
 
-    if (locations && locations.length > 0 && document.getElementById('map')) {
-        // Initialize the map, centered on a general view
-        const map = L.map('map').setView([20, 10], 2);
+        <div class="border-l-4 border-emerald-500 pl-6 py-4 bg-emerald-950/30 rounded-r-lg">
+          <h4 class="font-bold text-emerald-300 text-sm uppercase tracking-wider mb-2">3. Technical Control Review</h4>
+          <p class="text-gray-300 text-sm font-mono">Review email security gateway configurations. Enable advanced features: ATP, URL Sandboxing, Attachment Detonation to reduce malicious email delivery.</p>
+        </div>
+      </div>
+    </div>
 
-        // Add the map tile layer (from OpenStreetMap)
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
+  </div>
 
-        // Add a marker for each captured location
-        locations.forEach(loc => {
-            if (loc.lat && loc.lng) {
-                L.marker([loc.lat, loc.lng]).addTo(map)
-                    .bindPopup(`<b>Target:</b> ${loc.email}`);
-            }
-        });
+  <!-- ===== BACKGROUND ANIMATION & MOUSE GLOW ===== -->
+  <script>
+  (() => {
+    const canvas = document.getElementById('cyber-grid');
+    const ctx = canvas.getContext('2d');
+    let W, H, t = 0;
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
     }
-});
-</script>
+    window.addEventListener('resize', resize);
+    resize();
+
+    function draw() {
+      ctx.fillStyle = 'rgba(24, 24, 24, 0.27)';
+      ctx.fillRect(0,0,W,H);
+
+      const gridSize = 50;
+      ctx.strokeStyle = 'rgba(45, 141, 0, 0.37)';
+      ctx.lineWidth = 5;
+
+      for (let y=0; y<H; y+=gridSize) {
+        ctx.beginPath();
+        for (let x=0; x<W; x+=gridSize) {
+          const wave = Math.sin((x+t)*0.012)*8 + Math.cos((y+t)*0.018)*8;
+          ctx.lineTo(x, y+wave);
+        }
+        ctx.stroke();
+      }
+
+      for (let x=0; x<W; x+=gridSize) {
+        ctx.beginPath();
+        for (let y=0; y<H; y+=gridSize) {
+          const wave = Math.sin((y+t)*0.009)*8 + Math.cos((x+t)*0.013)*8;
+          ctx.lineTo(x+wave, y);
+        }
+        ctx.stroke();
+      }
+
+      for (let i=0; i<80; i++) {
+        const px = (Math.sin(t/15 + i)*W)/2 + W/2;
+        const py = (Math.cos(t/20 + i)*H)/2 + H/2;
+        ctx.fillStyle = `rgba(0,255,180,${Math.random()*0.4})`;
+        ctx.beginPath();
+        ctx.arc(px, py, 2.5, 0, Math.PI*2);
+        ctx.fill();
+      }
+      t += 1;
+      requestAnimationFrame(draw);
+    }
+    draw();
+
+    const mouseGlow = document.getElementById('mouse-glow');
+    document.addEventListener('mousemove', e => {
+      mouseGlow.style.transform = `translate(${e.clientX - 64}px, ${e.clientY - 64}px)`;
+    });
+  })();
+  </script>
+
+  <!-- ===== LEAFLET MAP ===== -->
+  {{ locations_data|json_script:"locations-data" }}
+  <script>
+  document.addEventListener('DOMContentLoaded', function () {
+      const locations = JSON.parse(document.getElementById('locations-data').textContent);
+      if (locations && locations.length > 0 && document.getElementById('map')) {
+          const map = L.map('map').setView([20, 10], 2);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(map);
+          locations.forEach(loc => {
+              if (loc.lat && loc.lng) {
+                  L.marker([loc.lat, loc.lng]).addTo(map)
+                      .bindPopup(`<b>${loc.email}</b>`);
+              }
+          });
+      }
+  });
+  </script>
+
+  <!-- ===== ENHANCED STYLES ===== -->
+  <style>
+    .stat-card-premium {
+      background: linear-gradient(to bottom, #051810, #001a0f);
+      border: 2px solid rgba(0,255,150,0.3);
+      padding: 1.5rem;
+      border-radius: 0.75rem;
+      box-shadow: 0 0 30px rgba(0,255,150,0.08), inset 0 0 20px rgba(0,255,150,0.02);
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    .stat-card-premium:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 0 0 50px rgba(0,255,150,0.2), inset 0 0 20px rgba(0,255,150,0.05);
+      border-color: rgba(0,255,150,0.6);
+    }
+  </style>
+
+</div>
 {% endblock %}

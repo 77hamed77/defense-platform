@@ -1,0 +1,112 @@
+<!-- cloud_scanner/templates/cloud_scanner/cloud_scan_detail.html -->
+{% extends "core/base.html" %}
+
+{% block title %}Cloud Scan Report{% endblock %}
+
+{% block content %}
+<div class="space-y-8 animate-fadeIn">
+    <!-- Header -->
+    <div>
+        <a href="{% url 'cloud_dashboard' %}" class="text-sm text-blue-400 hover:underline">← Back to Cloud Dashboard</a>
+        <h1 class="text-3xl font-bold text-white mt-2">Prowler Audit Report</h1>
+        <p class="text-gray-400">For AWS Environment: <strong class="text-cyan-400">{{ scan.environment.name }}</strong></p>
+        <p class="text-xs text-gray-500">Scanned on: {{ scan.created_at|date:"Y-m-d H:i" }}</p>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="card border border-gray-800 rounded-xl p-6 bg-gray-900">
+            <h3 class="text-lg font-bold text-white mb-4">Findings by Severity</h3>
+            <canvas id="severityChart" class="max-h-64"></canvas>
+        </div>
+        <div class="card border border-gray-800 rounded-xl p-6 bg-gray-900">
+            <h3 class="text-lg font-bold text-white mb-4">Top 10 Affected Services</h3>
+            <canvas id="serviceChart" class="max-h-64"></canvas>
+        </div>
+    </div>
+
+    <!-- Findings Table -->
+    <div class="card border border-gray-800 rounded-xl p-6 bg-gray-900">
+        <h3 class="text-2xl font-bold text-white mb-6">🔍 All Findings ({{ total_findings }})</h3>
+        <div class="space-y-4">
+            {% for finding in findings %}
+            <div class="border border-gray-800 rounded-lg p-4 bg-gray-950">
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex-1">
+                        <span class="font-semibold px-2.5 py-1 rounded-full text-xs
+                            {% if finding.severity == 'Critical' %} bg-red-500/20 text-red-300
+                            {% elif finding.severity == 'High' %} bg-orange-500/20 text-orange-300
+                            {% elif finding.severity == 'Medium' %} bg-yellow-500/20 text-yellow-300
+                            {% else %} bg-blue-500/20 text-blue-300 {% endif %}">
+                            {{ finding.severity }}
+                        </span>
+                        <h4 class="text-base font-semibold text-white mt-2">{{ finding.description }}</h4>
+                        <p class="text-xs text-gray-400 mt-1">Service: <strong>{{ finding.service_name }}</strong> | Region: <strong>{{ finding.region }}</strong></p>
+                    </div>
+                    <!-- (يمكن إضافة زر AI Analysis هنا) -->
+                </div>
+                <div class="mt-3">
+                    <button class="toggle-details text-xs text-cyan-400 hover:underline">Show Details & Remediation</button>
+                    <div class="details-content hidden mt-2 pt-3 border-t border-gray-800">
+                        <h5 class="text-sm font-semibold text-gray-300">Resource ID:</h5>
+                        <pre class="text-xs text-gray-400 bg-gray-800 p-2 rounded-md my-2 whitespace-pre-wrap break-all">{{ finding.resource_id }}</pre>
+                        
+                        <h5 class="text-sm font-semibold text-gray-300 mt-3">Remediation:</h5>
+                        <div class="prose prose-invert prose-sm max-w-none text-gray-400">
+                            <p>{{ finding.remediation|default:"No remediation steps provided."|linebreaksbr }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-green-400 italic">✅ Excellent! No security issues (FAILs) were found in this scan.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{{ severity_distribution|json_script:"severity-data" }}
+{{ service_distribution|json_script:"service-data" }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Severity Chart (Doughnut)
+    const severityData = JSON.parse(document.getElementById('severity-data').textContent);
+    if (severityData.length > 0) {
+        const severityLabels = severityData.map(d => d.severity);
+        const severityCounts = severityData.map(d => d.count);
+        const severityColors = severityLabels.map(s => {
+            if (s === 'Critical') return '#ef4444';
+            if (s === 'High') return '#f97316';
+            if (s === 'Medium') return '#eab308';
+            return '#3b82f6';
+        });
+        new Chart(document.getElementById('severityChart'), {
+            type: 'doughnut',
+            data: { labels: severityLabels, datasets: [{ data: severityCounts, backgroundColor: severityColors, borderColor: '#1f2937', borderWidth: 2 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#9ca3af' } } } }
+        });
+    }
+
+    // Service Chart (Horizontal Bar)
+    const serviceData = JSON.parse(document.getElementById('service-data').textContent);
+    if (serviceData.length > 0) {
+        const serviceLabels = serviceData.map(d => d.service_name);
+        const serviceCounts = serviceData.map(d => d.count);
+        new Chart(document.getElementById('serviceChart'), {
+            type: 'bar',
+            data: { labels: serviceLabels, datasets: [{ label: 'Findings', data: serviceCounts, backgroundColor: '#22d3ee' }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { color: '#9ca3af' } }, x: { ticks: { color: '#9ca3af' } } }, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // Toggle Details
+    document.querySelectorAll('.toggle-details').forEach(button => {
+        button.addEventListener('click', () => {
+            const content = button.nextElementSibling;
+            content.classList.toggle('hidden');
+            button.textContent = content.classList.contains('hidden') ? 'Show Details & Remediation' : 'Hide Details';
+        });
+    });
+});
+</script>
+{% endblock %}

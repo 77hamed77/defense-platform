@@ -1,4 +1,3 @@
-<!-- core/templates/core/base.html -->
 {% load static %}
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
@@ -12,51 +11,38 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Custom Theme -->
+    <link rel="icon" href="{% static 'images/logo.png' %}" type="image/svg+xml">
+
+    <!-- 🎨 Custom Styles -->
     <style>
         body {
-            background-color: #0f172a; /* أغمق قليلاً لإحساس أمني احترافي */
-            color: #d1d5db;
             font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            color: #d1d5db;
         }
 
+        /* بطاقات موحدة */
         .card {
-            background: linear-gradient(to bottom right, #1e293b, #0f172a);
-            border: 1px solid #334155;
-            border-radius: 0.75rem;
-            transition: all 0.3s ease;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(0,255,119,0.3);
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.4s ease;
         }
 
         .card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+            border-color: #00ff77;
+            box-shadow: 0 0 25px rgba(0,255,119,0.25);
+            transform: translateY(-2px);
         }
 
-        .table-header {
-            background-color: #1e293b;
-        }
-
-        .table-row-dark {
-            background-color: #1e293b;
-        }
-
-        .table-row-light {
-            background-color: #27354a;
-        }
-
-        /* ألوان درجات الخطورة */
-        .severity-low { background-color: #10b981; color: #fff; }
-        .severity-medium { background-color: #f59e0b; color: #fff; }
-        .severity-high { background-color: #ef4444; color: #fff; }
-        .severity-critical { background-color: #8b5cf6; color: #fff; }
-
-        /* شريط التنقل المتحرك */
+        /* روابط التنقل */
         .nav-link {
             position: relative;
             font-weight: 500;
             transition: all 0.3s ease;
+            color: #d1d5db;
         }
-
         .nav-link::after {
             content: "";
             position: absolute;
@@ -64,108 +50,164 @@
             left: 0;
             width: 0%;
             height: 2px;
-            background-color: #3b82f6;
+            background-color: #00ff77;
             transition: width 0.3s ease;
         }
-
         .nav-link:hover::after {
             width: 100%;
         }
+
+        /* مستويات الخطورة */
+        .severity-low { background-color: #22c55e30; color: #22c55e; border: 1px solid #22c55e80;}
+        .severity-medium { background-color: #eab30830; color: #eab308; border: 1px solid #eab30880;}
+        .severity-high { background-color: #f9731630; color: #f97316; border: 1px solid #f9731680;}
+        .severity-critical { background-color: #dc262630; color: #f87171; border: 1px solid #dc262680;}
     </style>
-    <!-- --- Leaflet.js CSS --- -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-     crossorigin=""/>
-    <link rel="icon" href="{% static 'images/eagle-icon.svg' %}" type="image/svg+xml">
 </head>
 
-<body class="antialiased selection:bg-blue-600 selection:text-white">
-    <!-- Navbar -->
-    <nav class="bg-gray-900/90 backdrop-blur-sm border-b border-gray-700 shadow-lg sticky top-0 z-50">
+<body class="antialiased selection:bg-green-600 selection:text-black relative">
+
+    <!-- 🌌 خلفية Data Streams -->
+    <canvas id="dataStreamBG" class="fixed inset-0 w-full h-full -z-10"></canvas>
+    <div class="fixed inset-0 bg-black/90 -z-10"></div>
+
+    <!-- 🔝 Navbar -->
+    <nav class="bg-black/90 backdrop-blur-md border-b border-green-700 shadow-lg sticky top-0 z-50">
         <div class="container mx-auto flex justify-between items-center px-6 py-4">
-            
             <!-- Logo -->
-            <div class="flex items-center space-x-4">
-                <img src="{% static 'images/eagle-icon.svg' %}" alt="Logo" class="h-10 w-10">
-                <h1 class="text-2xl font-extrabold text-white tracking-wide">
-                    <a href="{% url 'dashboard' %}" class="hover:text-blue-400 transition duration-300">
+            <div class="flex items-center space-x-3">
+                <img src="{% static 'images/logo.png' %}" alt="Logo" class="h-10 w-10">
+                <h1 class="text-2xl font-extrabold text-green-500 tracking-wide">
+                    <a href="{% url 'dashboard' %}" class="hover:text-green-200 transition" style="text-shadow: 0 0 5px rgba(0, 223, 104, 0.5);">
                         Smart Cybersecurity Division
                     </a>
                 </h1>
             </div>
 
-            <!-- Navigation Links -->
+            <!-- Navigation -->
             <div class="hidden md:flex items-center space-x-6 text-sm">
-                <a href="{% url 'dashboard' %}" class="nav-link text-gray-300 hover:text-white">Dashboard</a>
-                <a href="{% url 'ioc-list' %}" class="nav-link text-gray-300 hover:text-white">IOCs</a>
-                <a href="{% url 'hunting' %}" class="nav-link text-gray-300 hover:text-white">Hunting</a>
-                <a href="{% url 'scanner' %}" class="nav-link text-gray-300 hover:text-white">Scanner</a>
-                <a href="{% url 'network_map' %}" class="nav-link text-gray-300 hover:text-white" style="text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);">Network Map</a>
-                <!-- Dropdown: Phishing -->
+                <a href="{% url 'dashboard' %}" class="nav-link hover:text-green-300">Dashboard</a>
+                <a href="{% url 'ioc-list' %}" class="nav-link hover:text-green-300">IOCs</a>
+                <a href="{% url 'hunting' %}" class="nav-link hover:text-green-300">Hunting</a>
+                <a href="{% url 'scanner' %}" class="nav-link hover:text-green-300">Scanner</a>
+                <a href="{% url 'network_map' %}" class="nav-link hover:text-green-300">Network Map</a>
+                <a href="{% url 'apk_analysis_list' %}" class="nav-link hover:text-green-300">APK Analyzer</a>
+                <a href="{% url 'cloud_dashboard' %}" class="nav-link hover:text-green-300">Cloud Scanner</a>
+
+                <!-- Dropdown -->
                 <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="nav-link flex items-center text-gray-300 hover:text-white focus:outline-none">
+                    <button @click="open = !open" class="nav-link flex items-center hover:text-green-300 focus:outline-none">
                         <span>Phishing</span>
-                        <svg class="w-4 h-4 ml-1 transition-transform duration-300" 
+                        <svg class="w-4 h-4 ml-1 transition-transform duration-300"
                              :class="{ 'rotate-180': open }"
                              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M19 9l-7 7-7-7"></path>
                         </svg>
                     </button>
-                    <div x-show="open" @click.away="open = false" 
-                         x-transition
-                         class="absolute right-0 mt-2 w-52 bg-gray-800 border border-gray-700 rounded-md shadow-lg py-1 z-50">
-                        <a href="{% url 'phishing_campaign_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Campaigns</a>
-                        <a href="{% url 'landing_page_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Landing Pages</a>
-                        <a href="{% url 'email_template_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Email Templates</a>
-                        <a href="{% url 'phishing_target_list' %}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700">Targets</a>
+                    <div x-show="open" @click.away="open = false" x-transition
+                         class="absolute right-0 mt-2 w-52 bg-black/90 border border-green-700 rounded-md shadow-lg py-1 z-50">
+                        <a href="{% url 'phishing_campaign_list' %}" class="block px-4 py-2 text-sm text-green-300 hover:bg-green-900/20">Campaigns</a>
+                        <a href="{% url 'landing_page_list' %}" class="block px-4 py-2 text-sm text-green-300 hover:bg-green-900/20">Landing Pages</a>
+                        <a href="{% url 'email_template_list' %}" class="block px-4 py-2 text-sm text-green-300 hover:bg-green-900/20">Email Templates</a>
+                        <a href="{% url 'phishing_target_list' %}" class="block px-4 py-2 text-sm text-green-300 hover:bg-green-900/20">Targets</a>
                     </div>
                 </div>
-            </div>
-
-            <!-- Mobile Menu Button -->
-            <div class="md:hidden">
-                <button @click="openMenu = !openMenu" x-data="{ openMenu: false }"
-                        class="text-gray-300 hover:text-white focus:outline-none">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content -->
-    <main class="container mx-auto p-6">
-        
-        <!-- Flash Messages -->
+    <!-- 💡 Main Content -->
+    <main class="container mx-auto p-6 relative z-10">
         {% if messages %}
         <div class="mb-6 space-y-2">
             {% for message in messages %}
-            <div class="p-3 rounded-md text-white font-medium shadow-md
-                {% if message.tags == 'success' %} bg-green-600 
+            <div class="p-3 rounded-md font-medium shadow-md
+                {% if message.tags == 'success' %} bg-green-600
                 {% elif message.tags == 'warning' %} bg-yellow-600 text-black
-                {% elif message.tags == 'error' %} bg-red-600 
-                {% else %} bg-blue-600 {% endif %}">
+                {% elif message.tags == 'error' %} bg-red-600
+                {% else %} bg-gray-800 {% endif %} text-white">
                 {{ message }}
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        <!-- Dynamic Page Content -->
         {% block content %}
         {% endblock %}
     </main>
 
-    <!-- Footer -->
-    <footer class="text-center text-gray-500 text-sm py-6 border-t border-gray-800 mt-12">
+    <!-- ⚙️ Footer -->
+    <footer class="text-center text-green-400 text-sm py-6 border-t border-green-700 mt-12 relative z-10">
         © 2025 Smart Cybersecurity Division — All Rights Reserved
     </footer>
-     <!-- --- Leaflet.js JavaScript --- -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-     crossorigin=""></script>
+<!-- 💚 Canvas Radar Background -->
+<canvas id="radarBG" class="fixed inset-0 w-full h-full -z-10"></canvas>
+<div class="fixed inset-0 bg-black -z-20"></div> <!-- خلفية سوداء -->
+
+<script>
+const canvas = document.getElementById('radarBG');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// إعداد الحلقات
+const rings = [];
+for (let i = 0; i < 6; i++) {
+    rings.push({
+        radius: i * 60,
+        alpha: 0.2 + i * 0.1,
+        speed: 0.3 + Math.random() * 0.2
+    });
+}
+
+let sweepAngle = 0;
+
+function drawRadar() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+
+    // تغطية الخلفية بشفافية بسيطة
+    ctx.fillStyle = 'rgba(0,0,0,0.1)';
+    ctx.fillRect(0, 0, w, h);
+
+    // رسم الحلقات
+    rings.forEach(ring => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, ring.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(0,255,100,${ring.alpha})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ring.radius += ring.speed;
+        if (ring.radius > Math.max(w,h)/2) ring.radius = 0;
+    });
+
+    // رسم خط الـ sweep
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(sweepAngle);
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.lineTo(Math.max(w,h)/2,0);
+    ctx.strokeStyle = 'rgba(0,255,100,0.6)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+
+    sweepAngle += 0.01;
+
+    requestAnimationFrame(drawRadar);
+}
+
+drawRadar();
+</script>
+
 </body>
 </html>
