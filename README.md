@@ -1,19 +1,21 @@
+<div dir="ltr">
 <div align="center">
 
-ascii
+```ascii
    ___         ___         ___         ___         ___
   /\  \       /\  \       /\  \       /\  \       /\__\
  /::\  \     /::\  \     /::\  \     /::\  \     /:/ _/_
 /:/\:\  \   /:/\:\  \   /:/\:\  \   /:/\:\  \   /:/ /\  \
 \:\~\:\  \ /::\~\:\  \ /::\~\:\  \ /::\~\:\  \ /:/ /::\  \
  \:\ \:\__\\/\:\ \:\__\\/\:\ \:\__\\/\:\ \:\__\\/__\/:/\:\__\
-  \/_/:/  / \:\~\:\/__/ \:\~\:\/__/ \:\~\:\/__/   /:/ /:/  /
+  \/_/:/  \ \:\~\:\/__/ \:\~\:\/__/ \:\~\:\/__/   /:/ /:/  /
      /:/  /   \:\ \:\  \  \:\ \:\  \  \:\ \:\  \  /:/ /:/  /
     /:/  /     \:\ \:\__\  \:\ \:\__\  \:\ \:\__\ /:/ /:/  /
    /:/  /       \:\/:/  /   \:\/:/  /   \:\/:/  / /:/ /:/  /
    \/__/         \::/  /     \::/  /     \::/  /  \/__\/__/
 🛡️ Aegis Prime: Smart Cybersecurity Division Platform
 Where Data Becomes Defense.
+</div>
 منصة قيادة استراتيجية مبنية باستخدام Django، مصممة لتحويل فوضى بيانات الأمن السيبراني إلى إجراءات حاسمة ومؤتمتة. Aegis Prime هو الجهاز العصبي المركزي للحصن الرقمي الحديث.
 </div>
 <!-- 🎬 CRITICAL: A GIF showcasing the main dashboard, a scan running, and the phishing report is ESSENTIAL to do this project justice. -->
@@ -21,6 +23,7 @@ Where Data Becomes Defense.
 <!-- <img src="path/to/your/aegis-prime-demo.gif" width="90%"> -->
 </p>
 🛠️ ترسانة التقنيات (Tech Arsenal)
+<div align="center">
 Backend & SOAR	Task Queue	Database	Frontend
 ![alt text](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![alt text](https://img.shields.io/badge/Celery-37814A?style=for-the-badge&logo=celery&logoColor=white)
@@ -31,6 +34,7 @@ Backend & SOAR	Task Queue	Database	Frontend
 ![alt text](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![alt text](https://img.shields.io/badge/DRF-A30000?style=for-the-badge&logo=django&logoColor=white)
 ![alt text](https://img.shields.io/badge/Chart.js-FF6384?style=for-the-badge&logo=chartdotjs&logoColor=white)
+</div>
 ✨ القدرات الأساسية (Core Capabilities)
 🎯 مركز قيادة مركزي: لوحة تحكم "Single Pane of Glass" تعرض تنبيهات حية، تحليلات للخطورة، ومؤشرات أداء رئيسية.
 ⚙️ محرك مسح ضوئي غير متزامن: ينسق مجموعة واسعة من أدوات الأمن مفتوحة المصدر (Nmap, Nuclei, SQLMap, Nikto, Subfinder, وغيرها) كمهام خلفية باستخدام Celery و Redis.
@@ -43,6 +47,7 @@ Backend & SOAR	Task Queue	Database	Frontend
 الاختراق: نجحت المهمة في الاتصال بخدمة Metasploit RPC، وإطلاق الاستغلال، والحصول على جلسة Shell بصلاحيات root على الجهاز المستهدف، مما يثبت قدرة المنصة على الانتقال بسلاسة من الاستطلاع إلى الاختراق الناجح.
 <details>
 <summary>📚 <strong>قائمة أدوات الفحص المدمجة (Integrated Scanner List)</strong></summary>
+<div dir="ltr">
 Network Mapping: Nmap
 Web Vulnerability: Nikto, Nuclei
 Directory & File Discovery: dirsearch
@@ -50,6 +55,7 @@ SQL Injection: SQLMap, Ghauri
 Subdomain Enumeration: Subfinder, Amass
 Secret Detection: Trufflehog
 Specialized: XXEinjector, Subjack
+</div>
 </details>
 <details>
 <summary>🎣 <strong>تفاصيل وحدة محاكاة التصيد (Phishing Module Deep-Dive)</strong></summary>
@@ -68,6 +74,7 @@ Specialized: XXEinjector, Subjack
 </details>
 <details>
 <summary>⚙️ <strong>دليل الإعداد والتشغيل (Setup & Operation)</strong></summary>
+<div dir="ltr">
 المتطلبات: Python, Django, Redis, Metasploit Framework.
 إعداد البيئة: قم باستنساخ المستودع، أنشئ بيئة افتراضية، وقم بتثبيت المكتبات من requirements.txt.
 تشغيل الخدمات الأساسية:
@@ -85,6 +92,7 @@ celery -A defense_platform worker -l info
 # 4. Launch the Django Server
 python manage.py runserver
 الوصول للمنصة: اذهب إلى http://127.0.0.1:8000/.
+</div>
 </details>
 👨‍💻 المؤلف (Author)
 حامد محمد المرعي
@@ -96,3 +104,4 @@ python manage.py runserver
 <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
 </a>
 </p>
+```
