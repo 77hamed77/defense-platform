@@ -1,6 +1,6 @@
 <div align="center">
 
-```ascii
+ascii
    ___         ___         ___         ___         ___
   /\  \       /\  \       /\  \       /\  \       /\__\
  /::\  \     /::\  \     /::\  \     /::\  \     /:/ _/_
@@ -96,4 +96,3 @@ python manage.py runserver
 <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
 </a>
 </p>
-```
