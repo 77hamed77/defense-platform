@@ -25,3 +25,15 @@ google-generativeai
 # Database
 psycopg2-binary
 django-extensions
+
+# Supabase Integration
+gunicorn
+dj-database-url
+psycopg2-binary
+whitenoise
+
+#  Environment Management
+python-dotenv
+
+# AWS SDK
+boto3

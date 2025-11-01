@@ -1,0 +1,304 @@
+<!-- core/templates/core/platform_status.html -->
+
+{% extends "core/base.html" %}
+{% block title %}Platform Status — Release 1.0{% endblock %}
+
+{% block content %}
+<div class="relative overflow-hidden min-h-screen">
+
+  <!-- Background (subtle cyber glow + slow wave) -->
+  <canvas id="status-bg" class="fixed inset-0 w-full h-full -z-50" aria-hidden="true"></canvas>
+  <div class="fixed inset-0 -z-49" style="background: linear-gradient(180deg, rgba(0,8,6,0.55), rgba(0,18,14,0.82));"></div>
+
+  <!-- Content -->
+  <main class="relative z-10 container mx-auto px-6 py-10 space-y-8">
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-extrabold text-white flex items-center gap-3">
+          <span class="text-emerald-400 drop-shadow-[0_0_8px_rgba(0,255,170,0.6)]">🛰️</span>
+          حالة المنصة — الإصدار 1.0
+        </h1>
+        <p class="text-gray-400 mt-2 max-w-xl">
+          تقرير موجز مخصّص يوضح الأدوات العاملة وغير العاملة، ملاحظات الإصدار الحالي، وخطة التطوير للإصدار القادم.
+        </p>
+      </div>
+
+      <div class="flex gap-3 items-center">
+        <div class="text-right">
+          <p class="text-xs text-gray-400">نسخة</p>
+          <p class="text-sm font-semibold text-emerald-200">Release 1.0 — Initial Platform</p>
+        </div>
+        <div class="bg-[#02100e]/70 border border-emerald-800/20 rounded-full px-4 py-2 text-sm text-emerald-100 shadow-[0_8px_30px_rgba(0,255,170,0.05)]">
+          رسمي
+        </div>
+      </div>
+    </header>
+
+    <!-- Overview cards -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="rounded-2xl p-5 bg-[#02100e]/80 border border-emerald-800/12 shadow-md">
+        <h4 class="text-sm text-gray-300">حالة عامة</h4>
+        <p class="text-2xl font-bold text-emerald-200 mt-3">قيد التشغيل (إصدار أولي)</p>
+        <p class="text-sm text-gray-400 mt-2">النظام الأساسي يعمل لكن بعض الأدوات تحتاج إصلاح ودمج في السلاسل التشغيلية.</p>
+      </div>
+
+      <div class="rounded-2xl p-5 bg-[#02100e]/80 border border-emerald-800/12 shadow-md">
+        <h4 class="text-sm text-gray-300">أدوات عاملة</h4>
+        <p class="text-2xl font-bold text-emerald-200 mt-3">✅ 6</p>
+        <p class="text-sm text-gray-400 mt-2">Nikto · Nmap · dirsearch · Nuclei · Subfinder · (مدمجة أساسياً)</p>
+      </div>
+
+      <div class="rounded-2xl p-5 bg-[#02100e]/80 border border-emerald-800/12 shadow-md">
+        <h4 class="text-sm text-gray-300">أدوات بحاجة لإصلاح</h4>
+        <p class="text-2xl font-bold text-amber-300 mt-3">❌ 10</p>
+        <p class="text-sm text-gray-400 mt-2">SQLMap · Amass · Trufflehog · Subjack · XXEinjector · Burp Suite · OWASP ZAP · RouterSploit · MetaSploit · Cloud tests</p>
+      </div>
+    </section>
+
+    <!-- Tools status -->
+    <section class="rounded-2xl p-6 bg-[#02100e]/90 border border-emerald-800/10 shadow-lg">
+      <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-3">
+        <span class="text-emerald-300">🧰</span> حالة الأدوات
+      </h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Working tools -->
+        <div>
+          <h3 class="text-sm font-semibold text-emerald-200 mb-3">الأدوات الشغالة</h3>
+          <ul class="space-y-2">
+            <li class="flex items-center gap-3 bg-[#071815]/60 p-3 rounded-lg border border-emerald-800/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-600/10 text-emerald-300 font-bold">✅</span>
+              <div>
+                <div class="font-semibold text-emerald-100">Nikto</div>
+                <div class="text-xs text-gray-400">فحص تطبيقات الويب — يعمل بنجاح على نطاقات تجريبية.</div>
+              </div>
+            </li>
+
+            <li class="flex items-center gap-3 bg-[#071815]/60 p-3 rounded-lg border border-emerald-800/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-600/10 text-emerald-300 font-bold">✅</span>
+              <div>
+                <div class="font-semibold text-emerald-100">Nmap</div>
+                <div class="text-xs text-gray-400">تحديد المنافذ والخدمات — يعمل مع قيود أذونات النظام.</div>
+              </div>
+            </li>
+
+            <li class="flex items-center gap-3 bg-[#071815]/60 p-3 rounded-lg border border-emerald-800/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-600/10 text-emerald-300 font-bold">✅</span>
+              <div>
+                <div class="font-semibold text-emerald-100">dirsearch</div>
+                <div class="text-xs text-gray-400">بحث دلائل — جاهز ويعطي نتائج جيدة.</div>
+              </div>
+            </li>
+
+            <li class="flex items-center gap-3 bg-[#071815]/60 p-3 rounded-lg border border-emerald-800/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-600/10 text-emerald-300 font-bold">✅</span>
+              <div>
+                <div class="font-semibold text-emerald-100">Nuclei</div>
+                <div class="text-xs text-gray-400">قوالب تفتيش ثابته تعمل بسرعة جيدة.</div>
+              </div>
+            </li>
+
+            <li class="flex items-center gap-3 bg-[#071815]/60 p-3 rounded-lg border border-emerald-800/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-600/10 text-emerald-300 font-bold">✅</span>
+              <div>
+                <div class="font-semibold text-emerald-100">Subfinder</div>
+                <div class="text-xs text-gray-400">اكتشاف النطاقات الفرعية — مدمج وعملّي.</div>
+              </div>
+            </li>
+
+          </ul>
+        </div>
+
+        <!-- Non-working tools -->
+        <div>
+          <h3 class="text-sm font-semibold text-amber-300 mb-3">الأدوات غير الشغالة / قيد الإصلاح</h3>
+          <ul class="space-y-2">
+            {% comment %} Static list per request {% endcomment %}
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">SQLMap</div>
+                <div class="text-xs text-gray-400">قيد الدمج ضمن سلسلة الأوامر — يتطلب إدارة جلسات وقيود صلاحيات.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">Amass</div>
+                <div class="text-xs text-gray-400">مطلوب ضبط سلاسل الاعتمادات والـ API keys وإدارة التخزين المؤقت.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">Trufflehog</div>
+                <div class="text-xs text-gray-400">تسريبات الأسرار — يحتاج ضبط قواعد وخوارزميات تقليل الإيجابيات الكاذبة.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">Subjack</div>
+                <div class="text-xs text-gray-400">قيد الإصلاح لعدم توافق بعض استجابات DNS.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">XXEinjector</div>
+                <div class="text-xs text-gray-400">ميزة متقدمة للحملات — تحتاج وضع آمن واختبارات إضافية قبل التشغيل.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">Burp Suite</div>
+                <div class="text-xs text-gray-400">التكامل الآمن مع واجهة المستخدم يحتاج إعدادات ترخيص وتمرير البروكسي.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">OWASP ZAP</div>
+                <div class="text-xs text-gray-400">يشبه Burp — قيد الدمج والتنويع في بيئات الاختبار.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">RouterSploit · MetaSploit</div>
+                <div class="text-xs text-gray-400">بعض وحدات الاستغلال تعطل بسبب قيود بيئة التنفيذ؛ مطلوب sandbox قوي.</div>
+              </div>
+            </li>
+
+            <li class="flex items-start gap-3 bg-[#071815]/60 p-3 rounded-lg border border-amber-700/12">
+              <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-amber-600/10 text-amber-300 font-bold">❌</span>
+              <div>
+                <div class="font-semibold text-amber-200">Cloud penetration tests</div>
+                <div class="text-xs text-gray-400">مطلوب ربط آمن مع موفري السحابة وصلاحيات مخصصة للحسابات.</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Release notes & roadmap -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="rounded-2xl p-6 bg-[#02100e]/90 border border-emerald-800/12 shadow-md">
+        <h3 class="text-lg font-bold text-white mb-3">ملخص الإصدار الحالي (1.0)</h3>
+        <ul class="list-disc list-inside text-gray-300 space-y-2">
+          <li>تم إطلاق البنية الأساسية للمنصة مع التركيز على عمليات المسح الأساسية.</li>
+          <li>دمج أدوات مفتاحية: Nikto, Nmap, dirsearch, Nuclei, Subfinder.</li>
+          <li>واجهات المستخدم الأساسية لإدارة الحملات والنتائج جاهزة للاستخدام.</li>
+          <li>تم إنشاء آليات التقارير وتخزين النتائج مبدئياً.</li>
+        </ul>
+      </div>
+
+      <div class="rounded-2xl p-6 bg-[#02100e]/90 border border-amber-700/8 shadow-md">
+        <h3 class="text-lg font-bold text-white mb-3">خارطة طريق الإصدار 2.0</h3>
+        <ol class="list-decimal list-inside text-gray-300 space-y-2">
+          <li><strong>إصلاح ودمج الأدوات غير الشغالة:</strong> SQLMap, Amass, Trufflehog, Subjack, XXEinjector, Burp/OWASP.</li>
+          <li><strong>دمج سلاسل أوامر متكاملة:</strong> تنفيذ مهام متسلسلة (discovery → scanning → exploitation) مع سجل تنفيذ قابل للمراجعة.</li>
+          <li><strong>تحسين النظام الإشعاري:</strong> إصلاح رسائل البريد الإلكتروني، وتمكين إضافة معرف الموظف فقط للبوت دون بيانات إضافية.</li>
+          <li><strong>تطوير صفحة الحملة:</strong> أزرار تخصيص إشعار الضحية (سماح/عدم السماح) مع سجل موافقات.</li>
+          <li><strong>تحسين قسم الشبكة:</strong> فحص أجهزة محسّن وإصلاح RouterSploit وMetaSploit ضمن sandbox آمن.</li>
+          <li><strong>اختبارات السحابة:</strong> ربط آمن مع AWS وGCP وAzure وتشغيل مسوحات أعمق.</li>
+          <li><strong>لوحات تقارير مخصّصة:</strong> إنشاء تقارير قابلة للطباعة وجدولة تقارير دورية للإدارة.</li>
+          <li><strong>قسم تحليل التطبيقات</strong> إصلاح مشكلة التحليل الديناميكي.</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- Suggestions (رسمي) -->
+    
+
+    <!-- Contact & Next steps -->
+    <section class="rounded-2xl p-6 bg-[#02100e]/90 border border-emerald-800/8 shadow-md flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h4 class="text-sm font-semibold text-white">الخطوات التالية المقترحة</h4>
+        <p class="text-sm text-gray-300 mt-2">نقترح البدء بالأولوية: (1) Sandbox للأدوات الحساسة، (2) إصلاح تكامل SQLMap وAmass، (3) تحسين نظام الإشعارات.</p>
+      </div>
+
+      <div class="flex gap-3 items-center">
+        <a href="{% url 'dashboard' %}" class="px-4 py-2 rounded-lg bg-transparent border border-emerald-800/12 text-emerald-200 hover:bg-emerald-900/8 transition">العودة للوحة</a>
+        <a href="mailto:h55180d@gmail.com" class="px-4 py-2 rounded-lg bg-emerald-500 text-black font-semibold hover:brightness-105 transition">مراسلة الفريق الأمني</a>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Background animation script (slow ambient glow + gentle waves) -->
+<script>
+(function(){
+  const canvas = document.getElementById('status-bg');
+  const ctx = canvas.getContext('2d');
+  let W, H, t = 0;
+
+  function resize(){ W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  window.addEventListener('resize', resize); resize();
+
+  function draw(){
+    // base tint
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = 'rgba(0,6,4,0.4)';
+    ctx.fillRect(0,0,W,H);
+
+    // moving soft glow (center-left)
+    const gx = W * 0.18, gy = H * 0.22;
+    const rg = ctx.createRadialGradient(gx, gy, 50, gx, gy, Math.max(W,H));
+    rg.addColorStop(0, 'rgba(0,255,170,0.08)');
+    rg.addColorStop(0.3, 'rgba(0,255,170,0.02)');
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rg; ctx.fillRect(0,0,W,H);
+
+    // gentle horizontal waves
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i=0;i<3;i++){
+      ctx.beginPath();
+      const amp = 12 + i*8;
+      const speed = 0.001 + i*0.0007;
+      ctx.strokeStyle = `rgba(0,220,150,${0.04 - i*0.01})`;
+      ctx.lineWidth = 1.6;
+      for (let x=0;x<=W;x+=6){
+        const y = H*0.35 + Math.sin((x*0.006) + (t*speed) + i) * amp + i*10;
+        if (x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    t += 1;
+    requestAnimationFrame(draw);
+  }
+
+  // reduced-motion respect
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    // draw one static frame
+    t = 0; draw();
+  } else {
+    draw();
+  }
+})();
+</script>
+
+<!-- Small styles to keep look consistent -->
+<style>
+  /* ensure cards overlay cleanly above canvas */
+  main { -webkit-font-smoothing:antialiased; }
+  /* subtle scrollbar color for admin UX */
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgba(0,255,170,0.08); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+</style>
+{% endblock %}

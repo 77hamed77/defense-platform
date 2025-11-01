@@ -87,12 +87,13 @@
             <!-- Navigation -->
             <div class="hidden md:flex items-center space-x-6 text-sm">
                 <a href="{% url 'dashboard' %}" class="nav-link hover:text-green-300">Dashboard</a>
-                <a href="{% url 'ioc-list' %}" class="nav-link hover:text-green-300">IOCs</a>
-                <a href="{% url 'hunting' %}" class="nav-link hover:text-green-300">Hunting</a>
+                {% comment %} <a href="{% url 'ioc-list' %}" class="nav-link hover:text-green-300">IOCs</a>
+                <a href="{% url 'hunting' %}" class="nav-link hover:text-green-300">Hunting</a> {% endcomment %}
                 <a href="{% url 'scanner' %}" class="nav-link hover:text-green-300">Scanner</a>
                 <a href="{% url 'network_map' %}" class="nav-link hover:text-green-300">Network Map</a>
                 <a href="{% url 'apk_analysis_list' %}" class="nav-link hover:text-green-300">APK Analyzer</a>
                 <a href="{% url 'cloud_dashboard' %}" class="nav-link hover:text-green-300">Cloud Scanner</a>
+                <a href="{% url 'platform_status' %}" class="nav-link hover:text-green-300">Platform Status</a>
 
                 <!-- Dropdown -->
                 <div class="relative" x-data="{ open: false }">

@@ -58,9 +58,18 @@ class ActionLog(models.Model):
 
 # --- النماذج الخاصة بالماسح الضوئي (Scanner Framework) ---
 
+# core/models.py
+
 class Tool(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="e.g., Nikto, Nmap, SQLMap")
     description = models.TextField(blank=True, null=True)
+    # 👈 إضافة جديدة: المسار الكامل للأداة
+    executable_path = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        help_text="Full path to the tool's executable (e.g., /usr/bin/nmap). Leave blank if it's in the system's PATH."
+    )
     command_template = models.CharField(max_length=500, help_text="e.g., nikto -h {target} -o {output} -format json")
     is_active = models.BooleanField(default=True)
     def __str__(self): return self.name

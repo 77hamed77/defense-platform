@@ -22,4 +22,3 @@ db.sqlite3-journal
 .vscode/
 
 # Secrets - If you create a .env file later for secrets
-.env

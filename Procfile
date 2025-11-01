@@ -1,0 +1,1 @@
+web: gunicorn defense_platform.wsgi:application

@@ -79,6 +79,12 @@ from .models import Alert, Vulnerability, Scan, PhishingCampaign
 from network_mapper.models import NetworkDevice
 from apk_analyzer.models import APKAnalysis
 from cloud_scanner.models import CloudScan
+from django.shortcuts import render
+from django.db.models.functions import TruncDate
+from django.db.models import Count
+from datetime import timedelta
+from django.utils import timezone
+from core.models import PhishingResult
 
 def dashboard(request):
     """
@@ -103,12 +109,36 @@ def dashboard(request):
     latest_cloud_scans = CloudScan.objects.order_by('-created_at')[:5]
     
     # --- قسم التصيد الاحتيالي (Phishing) ---
-    # نستخدم annotate لإضافة عدد النقرات والبيانات المدخلة لكل حملة بكفاءة
     latest_phishing_campaigns = PhishingCampaign.objects.annotate(
         clicked_count=Count('results', filter=Q(results__is_clicked=True)),
         submitted_count=Count('results', filter=Q(results__submitted_data=True))
     ).order_by('-created_at')[:5]
 
+    # عدد الأجهزة أو المستخدمين الذين ضغطوا على رابط التصيد
+    total_clicked_devices = PhishingResult.objects.filter(is_clicked=True).count()
+    
+    # --- 📊 قسم النقرات (Clicks Graph) ---
+    today = timezone.localdate()
+    start_date = today - timedelta(days=30)
+
+    clicks_qs = (
+        PhishingResult.objects
+        .filter(is_clicked=True, clicked_date__date__gte=start_date)
+        .annotate(day=TruncDate('clicked_date'))
+        .values('day')
+        .annotate(total=Count('id'))
+        .order_by('day')
+    )
+
+    # تحويل النتائج إلى خرائط مرتبة
+    click_map = {entry['day']: entry['total'] for entry in clicks_qs}
+
+    labels, data = [], []
+    for i in range(31):
+        date = start_date + timedelta(days=i)
+        labels.append(date.strftime('%d %b'))
+        data.append(click_map.get(date, 0))
+    
     # --- تجميع كل البيانات لتمريرها إلى القالب ---
     context = {
         'latest_alerts': latest_alerts,
@@ -120,6 +150,9 @@ def dashboard(request):
         'latest_apk_analyses': latest_apk_analyses,
         'latest_cloud_scans': latest_cloud_scans,
         'latest_phishing_campaigns': latest_phishing_campaigns,
+        'total_clicked_devices': total_clicked_devices,  # ✅ متغير جديد
+        'click_labels': labels,
+        'click_data': data,
     }
     
     return render(request, 'core/dashboard.html', context)
@@ -896,3 +929,11 @@ def evidence_harvester_view(request, result_id):
         print(f"Error in evidence harvester: {e}")
         # Silently fail to avoid giving attackers information
         return JsonResponse({'status': 'error'}, status=400)
+    
+    
+def platform_status(request):
+    """
+    صفحة حالة المنصة والإصدار الحالي.
+    صفحة ثابتة مخصّصة للإدارة.
+    """
+    return render(request, 'core/platform_status.html')

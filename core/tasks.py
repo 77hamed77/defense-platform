@@ -1,4 +1,5 @@
 # core/tasks.py
+from json import tool
 import re # <-- مكتبة جديدة لمعالجة النصوص
 from network_mapper.models import NetworkDevice # <-- استيراد النموذج الجديد
 import requests
@@ -47,8 +48,15 @@ def execute_scan_task(scan_id, target_for_tool): # <-- تم إضافة الوس�
     output_path = f"/tmp/scan_report_{scan_id}"
     
     # بناء الأمر ديناميكيًا باستخدام الوسيط الجديد 'target_for_tool'
-    command_str = tool.command_template.format(target=target_for_tool, output=output_path, host_ip='127.0.0.1')
-    
+    executable = tool.executable_path or tool.name.lower()
+
+    # بناء الأمر ديناميكيًا
+    command_str = tool.command_template.format(
+        executable=executable, # <-- متغير جديد
+        target=target_for_tool,
+        output=output_path,
+        host_ip='127.0.0.1'
+    )
     result_message = ""
     print(f"Executing command for scan {scan.id}: {command_str}")
 
@@ -64,6 +72,18 @@ def execute_scan_task(scan_id, target_for_tool): # <-- تم إضافة الوس�
         print(f"[{tool.name} Scan {scan.id}] STDOUT:\n{result.stdout}")
         print(f"[{tool.name} Scan {scan.id}] STDERR:\n{result.stderr}")
 
+        # ✅==== إضافة جديدة للتشخيص ====✅
+        if os.path.exists(output_path):
+            with open(output_path, 'r') as f:
+                file_content_for_debug = f.read()
+                print(f"--- DEBUG: Content of {output_path} ---")
+                print(file_content_for_debug)
+                print("--- END DEBUG ---")
+        else:
+            print(f"--- DEBUG: Output file {output_path} was NOT created. ---")
+        # ✅============================✅
+
+        
         # منطق التحليل لجميع الأدوات
         if tool.name == 'Nikto':
             parse_nikto_json(scan, output_path)
@@ -166,28 +186,32 @@ def parse_nikto_json(scan, file_path):
 
 def parse_nmap_text(scan, file_path):
     """
-    تحلل تقرير Nmap النصي (مخرجات -oN) وتنشئ سجلات للبورتات المفتوحة.
+    تحلل تقرير Nmap النصي (-oN) باستخدام تعبير نمطي دقيق لتحديد البورتات المفتوحة فقط.
     """
     if not os.path.exists(file_path):
         print(f"Nmap report file not found: {file_path}")
         return
-        
-    with open(file_path, 'r') as f:
-        for line in f:
-            line = line.strip()
-            # البحث عن الأسطر التي تحتوي على بورت مفتوح
-            if '/tcp' in line and 'open' in line:
-                parts = [p for p in line.split() if p] # تقسيم السطر وإزالة المسافات الزائدة
-                if len(parts) >= 3:
-                    port = parts[0]
-                    service = " ".join(parts[2:])
-                    Vulnerability.objects.create(
-                        scan=scan, 
-                        description=f"Open Port: {port} - Service: {service}",
-                        severity="Informational", 
-                        details={'port': port, 'service': service, 'raw_line': line}
-                    )
 
+    # هذا التعبير النمطي يبحث عن الأسطر التي تبدأ برقم بورت، ثم /tcp، ثم كلمة "open" بالضبط
+    # مثال: "22/tcp    open   ssh"
+    port_pattern = re.compile(r"^\s*(\d+\/tcp)\s+(open)\s+(.*)$")
+
+    with open(file_path, 'r') as f:
+            for line in f:
+                match = port_pattern.match(line.strip())
+                if match:
+                    port, state, service_str = match.groups()
+                    
+                    # ✅ إضافة جديدة: تحقق من وجود "tcpwrapped"
+                    if "tcpwrapped" in service_str:
+                        continue  # تجاهل هذا السطر وانتقل إلى التالي
+
+                    Vulnerability.objects.create(
+                        scan=scan,
+                        description=f"Open Port: {port} - Service: {service_str.strip()}",
+                        severity="Informational",
+                        details={'port': port, 'service': service_str.strip(), 'raw_line': line.strip()}
+                    )
 # --- مهمة إثراء البيانات من VirusTotal ---
 
 @shared_task
@@ -231,24 +255,54 @@ def enrich_ip_with_virustotal(alert_id, playbook_id):
         details = f"VirusTotal API request failed for IP {ip_address}. Error: {str(e)}"
         ActionLog.objects.create(alert=alert, playbook_run=playbook, details=details)
         return details
-    
+
+
 def parse_dirsearch_report(scan, file_path):
-    if not os.path.exists(file_path): return
-    with open(file_path, 'r') as f:
-        for line in f:
-            # النتائج الحقيقية لا تبدأ بـ '#'
-            if line.strip() and not line.startswith('#'):
-                # السطر عادة ما يكون: [TIME] STATUS SIZE --> URL
-                parts = line.split('-->')
-                if len(parts) > 1:
-                    url = parts[1].strip()
+    """
+    تحلل تقرير dirsearch بصيغة JSON، مع معالجة حالة الملف الفارغ.
+    هذه هي الطريقة الأكثر موثوقية.
+    """
+    if not os.path.exists(file_path):
+        print("Dirsearch report file does not exist.")
+        return
+
+    try:
+        with open(file_path, 'r') as f:
+            # اقرأ محتوى الملف أولاً
+            content = f.read()
+            
+            # تحقق مما إذا كان المحتوى فارغًا أو يحتوي فقط على مسافات بيضاء
+            if not content.strip():
+                print("Dirsearch report file is empty. No results to parse.")
+                return
+
+            # الآن فقط حاول تحليل JSON
+            report_data = json.loads(content)
+            
+            # dirsearch يكتب قاموس JSON يحتوي على مفتاح هو عنوان URL
+            # نحن نهتم بالنتائج الموجودة تحت مفتاح الهدف
+            target_url_keys = [k for k in report_data.keys() if k != 'errors']
+            if not target_url_keys:
+                print("No target URL key found in dirsearch JSON report.")
+                return
+
+            target_url = target_url_keys[0]
+            results = report_data.get(target_url, [])
+
+            for result in results:
+                # نحن نهتم بالنتائج التي لها رمز استجابة صالح
+                if result.get('status') not in [404, 400]:
                     Vulnerability.objects.create(
                         scan=scan,
-                        description=f"Discovered Path: {url}",
+                        description=f"Discovered Path: {result.get('path')}",
                         severity="Informational",
-                        details={'raw_line': line.strip()}
+                        details=result  # نحفظ كائن النتيجة بالكامل
                     )
-                    
+    except (json.JSONDecodeError, IndexError) as e:
+        print(f"Error parsing dirsearch JSON report: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred in parse_dirsearch_report: {e}")
+
 # --- إضافة جديدة: دالة تحليل لـ Nuclei ---
 def parse_nuclei_jsonl(scan, file_path):
     if not os.path.exists(file_path): return
@@ -588,7 +642,12 @@ def run_eyewitness_on_scan(scan_id):
             f.write(f"https://{target}\n")
 
     # 3. إعداد مسارات Eyewitness
-    eyewitness_script_path = "/home/hamid/EyeWitness/Python/EyeWitness.py"
+    # 👈 تعديل: جلب المسار من قاعدة البيانات
+    eyewitness_tool = Tool.objects.get(name='Eyewitness') # Assuming you have a tool named 'Eyewitness'
+    eyewitness_script_path = eyewitness_tool.executable_path
+    if not eyewitness_script_path:
+        return "Eyewitness executable path is not configured."
+
     output_dir_temp = f"/tmp/eyewitness_report_{scan.id}"
     
     command = [
@@ -828,8 +887,7 @@ def clone_landing_page(page_id, url_to_clone):
 def run_network_discovery_task(ip_range, interface):
     print(f"Starting network discovery for range '{ip_range}' on interface '{interface}'...")
     
-    command_str = f"sudo /usr/sbin/netdiscover -r {ip_range} -i {interface} -P -N"
-    
+    command_str = f"sudo /usr/local/sbin/netdiscover -r {ip_range} -i {interface} -P -N"    
     output = ""
     try:
         result = subprocess.run(
@@ -903,8 +961,11 @@ def run_routersploit_audit(device_id):
     log_file_path = f"/tmp/routersploit_log_{scan.id}.txt"
     log_file = open(log_file_path, "w")
     
-    # المسار إلى سكربت RouterSploit
-    rsf_script = "/home/hamid/routersploit/rsf.py"
+    # 👈 تعديل: جلب المسار من قاعدة البيانات
+    if not tool.executable_path:
+        return "RouterSploit executable path is not configured in the admin panel."
+    
+    rsf_script = tool.executable_path
     
     try:
         # بدء عملية RouterSploit
@@ -985,12 +1046,15 @@ def analyze_apk_task(analysis_id):
         if os.path.exists(manifest_path):
             parse_android_manifest(analysis, manifest_path)
         
-        # --- المرحلة 3: فحص الأسرار باستخدام Trufflehog ---
+                # --- المرحلة 3: فحص الأسرار باستخدام Trufflehog ---
         trufflehog_tool = Tool.objects.get(name='Trufflehog')
         trufflehog_output = f"/tmp/trufflehog_report_{analysis.id}.jsonl"
-        # تعديل الأمر ليفحص مجلدًا بدلاً من git
-        trufflehog_cmd = f"/home/hamid/go/bin/trufflehog filesystem {output_dir} --json --no-update > {trufflehog_output}"
-        subprocess.run(trufflehog_cmd, shell=True, check=False) # check=False لأن Trufflehog قد يرجع 1
+
+        # 👈 تعديل: جلب المسار من قاعدة البيانات
+        trufflehog_path = trufflehog_tool.executable_path or 'trufflehog' # Use 'trufflehog' as fallback if in PATH
+        
+        trufflehog_cmd = f"{trufflehog_path} filesystem {output_dir} --json --no-update > {trufflehog_output}"
+        subprocess.run(trufflehog_cmd, shell=True, check=False)
         
         # تحليل نتائج Trufflehog
         parse_trufflehog_json_for_apk(analysis, trufflehog_output)
@@ -1216,8 +1280,11 @@ def run_prowler_audit_task(scan_id):
     prowler_env['AWS_DEFAULT_REGION'] = env.default_region
 
     output_file = f"/tmp/prowler_report_{scan.id}.json"
-    # المسار إلى prowler داخل venv
-    prowler_path = "/home/hamid/defense-platform/venv/bin/prowler"
+
+    # 👈 تعديل: جلب المسار من قاعدة البيانات
+    prowler_tool = Tool.objects.get(name='Prowler') # Assuming you have a tool named 'Prowler'
+    prowler_path = prowler_tool.executable_path or 'prowler'
+    
     command = [prowler_path, 'aws', '--output-mode', 'json']
 
     try:

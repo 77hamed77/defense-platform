@@ -1,0 +1,55 @@
+الاسم: Nmap
+المسار: (فارغ)
+الأمر: sudo /usr/bin/nmap -sV -n -Pn -oN {output} {target}
+إعدادات النظام: يتطلب إضافة username ALL=(ALL) NOPASSWD: /usr/bin/nmap إلى ملف sudoers.
+
+
+الاسم: Subfinder
+المسار: (فارغ) أو المسار المخصص لـ go/bin إذا لزم الأمر.
+الأمر: subfinder -d {target} -o {output}
+إعدادات النظام: لا يتطلب صلاحيات خاصة.
+
+
+الاسم: dirsearch
+يوجد بها مشكلة سيتم إصلاحها في الإصدار التالي 
+يتم الآن إستعمالها خاج المنصة
+
+
+Trufflehog : المشكلة ان هذه الأداة لا تفحص عبر الانترنت و لكن تفحص بدون انترنت مثل ملفات و هكذا و تبحث عن أسرار معينة
+
+Subjack : هي الأداة بتعتد على ملف من الروابط الفرعبة الضعيفة الي تم إكتشافها من اداة Subfinder  لهيك رح ظبطها بالإصدار التاني مع السلاسل  الأوامر
+
+
+لإخبار أداة XXEINJECT : 
+POST /test HTTP/1.1
+Host: 9d8e3779-6412-4298-a6d8-fc35976c0963.webhook.site
+Content-Type: application/xml
+Content-Length: 62
+
+<?xml version="1.0" encoding="UTF-8"?>
+<data>XXEINJECT</data>
+
+و يجب ان تبقى نافذة https://webhook.site/#!/view/9d8e3779-6412-4298-a6d8-fc35976c0963 مفتوحة
+
+فشلت أداة XXEINJECT
+تعمل خارج المنصة 
+
+و SQLMap  ايضا خارج المنصة 
+
+في الإصدار التالي سأقوم بإصلاحهم و دمجهم داخل سلسلة من الأوامر 
+
+
+الأدواة الشغالة
+Nikto
+Nmap
+dirsearch
+Nuclei
+Subfinder
+الادواة الي مش شغالة
+SQLMap
+Amass
+Trufflehog
+Subjack
+XXEinjector
+Burp Suit
+ZAP

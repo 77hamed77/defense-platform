@@ -53,4 +53,6 @@ urlpatterns = [
 
     # 6. مسار عرض الأدلة المجمعة (مثل لقطات الشاشة، بيانات الاعتماد)
     path('phish/evidence/<uuid:result_id>/', views.evidence_harvester_view, name='evidence_harvester'),
+    
+    path('platform-status/', views.platform_status, name='platform_status'),
 ]
